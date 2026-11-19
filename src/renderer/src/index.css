@@ -1,0 +1,229 @@
+/* Font yang sama dengan deepseek.com (dibundel lokal supaya app tetap jalan tanpa internet). */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/dm-sans-latin-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Host Grotesk';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('./assets/fonts/host-grotesk-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fragment Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/fragment-mono-latin.woff2') format('woff2');
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { color-scheme: dark; }
+html, body, #root { height: 100%; }
+
+/*
+ * Dasar: netral hangat. Pendar ember cukup kuat supaya layar tidak terasa hitam pekat,
+ * ditambah satu pendar sejuk tipis di kanan atas sebagai lawan warna.
+ */
+body {
+  @apply antialiased font-sans;
+  color: #e9e4e0;
+  overflow: hidden;
+  background-color: #161311;
+  background-image:
+    radial-gradient(1000px 620px at 0% -18%, rgba(201, 99, 47, 0.16), transparent 64%),
+    radial-gradient(760px 520px at 104% -8%, rgba(95, 141, 174, 0.05), transparent 60%),
+    radial-gradient(1100px 700px at 50% 120%, rgba(122, 53, 26, 0.14), transparent 68%);
+  background-attachment: fixed;
+  letter-spacing: -0.006em;
+}
+
+/* Butir halus: mencegah permukaan datar terlihat plastik. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+#root { position: relative; z-index: 1; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(232, 160, 119, 0.16); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(232, 160, 119, 0.26); }
+::selection { background: rgba(201, 99, 47, 0.32); }
+
+/* Kontrol bawaan browser ikut warna aksen. */
+input[type='checkbox'], input[type='radio'], progress, input[type='range'] { accent-color: #c9632f; }
+
+@layer components {
+  /*
+   * Kaca hangat: transparan + blur, dengan garis tepi ember tipis.
+   * Karena latar tidak lagi "bersirkuit" di belakang konten, tembus pandang ini aman.
+   */
+  .glass {
+    background: linear-gradient(180deg, rgba(58, 44, 36, 0.60), rgba(30, 24, 21, 0.74));
+    backdrop-filter: blur(18px) saturate(130%);
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    border: 1px solid rgba(232, 160, 119, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 224, 0.10), 0 22px 50px -38px rgba(0, 0, 0, 0.9);
+  }
+  .glass-panel {
+    background: linear-gradient(180deg, rgba(44, 34, 28, 0.72), rgba(22, 18, 16, 0.84));
+    backdrop-filter: blur(22px) saturate(125%);
+    -webkit-backdrop-filter: blur(22px) saturate(125%);
+    border: 1px solid rgba(232, 160, 119, 0.11);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 224, 0.08), 0 26px 58px -42px rgba(0, 0, 0, 0.95);
+  }
+  .glass-strong {
+    background: linear-gradient(180deg, rgba(58, 44, 36, 0.90), rgba(28, 22, 19, 0.94));
+    backdrop-filter: blur(30px) saturate(130%);
+    -webkit-backdrop-filter: blur(30px) saturate(130%);
+    border: 1px solid rgba(232, 160, 119, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 224, 0.12), 0 40px 90px -50px rgba(0, 0, 0, 0.98);
+  }
+  .glass-soft {
+    background: rgba(232, 160, 119, 0.06);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(232, 160, 119, 0.10);
+  }
+
+  /* Label kecil ala "HARNESS" di deepseek.com, dihangatkan. */
+  .ds-label {
+    @apply font-mono uppercase;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: rgb(178, 146, 126);
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-accent-300/15 bg-accent-300/[0.06] px-2.5 py-1 text-xs text-zinc-300 transition;
+  }
+  .pill:hover { @apply bg-accent-300/[0.12] text-zinc-100; }
+
+  /* Tombol utama: satu warna padat terracotta, tanpa gradasi. */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium text-white;
+    background-color: #b0522a;
+    border: 1px solid rgba(255, 236, 224, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 224, 0.18), 0 10px 22px -16px rgba(0, 0, 0, 0.9);
+    transition: background-color 0.22s ease, transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s;
+  }
+  .btn-primary:hover {
+    background-color: #c9632f;
+    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 224, 0.22), 0 14px 26px -16px rgba(0, 0, 0, 0.95);
+  }
+  .btn-primary:active { transform: translateY(0); background-color: #a04a26; }
+  .btn-primary:disabled { @apply opacity-40; }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-accent-300/15 bg-accent-300/[0.05] px-3.5 py-1.5 text-sm text-zinc-200;
+    transition: background-color 0.22s, border-color 0.22s, color 0.22s, transform 0.22s;
+  }
+  .btn-ghost:hover {
+    @apply border-accent-400/45 bg-accent-500/[0.14] text-white;
+    transform: translateY(-1px);
+  }
+  .btn-ghost:disabled { @apply opacity-40; }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full border border-red-400/35 bg-red-500/10 px-3.5 py-1.5 text-sm text-red-200;
+    transition: background-color 0.22s, border-color 0.22s, color 0.22s;
+  }
+  .btn-danger:hover { @apply border-red-400/60 bg-red-500/20 text-red-100; }
+
+  /* Kartu isi: kaca tipis, angkat halus saat kursor menyentuh. */
+  .card {
+    @apply rounded-2xl border border-accent-300/[0.10];
+    background: linear-gradient(180deg, rgba(52, 40, 33, 0.52), rgba(28, 22, 19, 0.66));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
+  }
+  .card:hover {
+    @apply border-accent-400/35;
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -30px rgba(0, 0, 0, 0.95);
+  }
+
+  /* Garis rambut ember: pemisah tipis yang menghangatkan bidang. */
+  .hairline { height: 1px; background: linear-gradient(90deg, transparent, rgba(232, 160, 119, 0.38), transparent); }
+
+  /* Kolom input: kaca tipis dengan cincin fokus aksen. */
+  .field {
+    background: rgba(232, 160, 119, 0.055);
+    border: 1px solid rgba(232, 160, 119, 0.14);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: border-color 0.22s, box-shadow 0.22s, background-color 0.22s;
+  }
+  .field:focus-within, .field:focus {
+    border-color: rgba(201, 99, 47, 0.55);
+    background: rgba(232, 160, 119, 0.08);
+    box-shadow: 0 0 0 3px rgba(201, 99, 47, 0.16);
+  }
+}
+
+@layer utilities {
+  .font-display { letter-spacing: -0.022em; }
+  .drag { -webkit-app-region: drag; }
+  .no-drag { -webkit-app-region: no-drag; }
+  .text-balance { text-wrap: balance; }
+  .nums { font-variant-numeric: tabular-nums; }
+
+  /* Angkat halus saat kursor menyentuh kartu/tombol. */
+  .lift { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s, border-color 0.3s, background-color 0.3s; }
+  .lift:hover { transform: translateY(-2px); }
+
+  /* Kilau tipis menyapu tombol saat hover (bukan gradasi isi). */
+  .sheen { position: relative; overflow: hidden; }
+  .sheen::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    bottom: -40%;
+    left: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+    transform: translateX(-220%) skewX(-16deg);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .sheen:hover::before { opacity: 1; animation: sheen 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+
+  /* Sorot lembut mengikuti kursor di kartu besar. */
+  .spot { position: relative; }
+  .spot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(201, 99, 47, 0.14), transparent 68%);
+  }
+  .spot:hover::before { opacity: 1; }
+}
+
+@keyframes sheen {
+  0% { transform: translateX(-220%) skewX(-16deg); }
+  100% { transform: translateX(320%) skewX(-16deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheen:hover::before { animation: none; }
+  .lift:hover { transform: none; }
+  .animate-pulseGlow, .animate-drift { animation: none; }
+}

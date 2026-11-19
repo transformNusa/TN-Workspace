@@ -1,0 +1,37 @@
+# dependensi & hasil build
+node_modules/
+out/
+dist/
+build/
+
+# runtime python portable (unduh sendiri lewat npm run setup:python)
+runtime/
+
+# data lokal aplikasi
+.tn-data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# log & berkas sementara
+*.log
+tn-startup.log
+startup.log
+*.tmp
+
+# alat pengembangan & tangkapan layar lokal
+.shots*/
+.redesign-shots/
+.tmp-*/
+.acl-recovery/
+
+# rahasia
+.env
+.env.*
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/

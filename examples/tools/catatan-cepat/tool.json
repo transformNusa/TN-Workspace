@@ -1,0 +1,35 @@
+{
+  "id": "catatan-cepat",
+  "title": "Catatan Cepat",
+  "description": "Tulis satu catatan singkat, simpan ke file Markdown harian. Hasilnya bisa dibuka atau dilampirkan ke task.",
+  "icon": "notebook-pen",
+  "type": "script",
+  "runtime": "node",
+  "entry": "catatan.js",
+  "ui": "auto-form",
+  "inputs": [
+    {
+      "name": "isi",
+      "label": "Isi catatan",
+      "kind": "text",
+      "required": true,
+      "placeholder": "Contoh: follow up tiket #1234 besok pagi"
+    },
+    {
+      "name": "folder",
+      "label": "Folder simpan (opsional)",
+      "kind": "folder",
+      "placeholder": "Kosongkan untuk Documents\\Catatan TN"
+    },
+    {
+      "name": "sertakanWaktu",
+      "label": "Sertakan jam catatan",
+      "kind": "checkbox",
+      "default": true
+    }
+  ],
+  "output": "files",
+  "dockable": true,
+  "attachableToTask": true,
+  "version": "1.0.0"
+}

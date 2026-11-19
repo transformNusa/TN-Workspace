@@ -1,0 +1,3721 @@
+{
+  "version": 1,
+  "project": "alip-workspace",
+  "updated": "2026-11-19",
+  "notes": "Sumber kebenaran relasi kode. Jalankan `node MEMORY/tool.mjs index` setelah mengubah berkas ini dan `check` untuk validasi. Path relatif terhadap root proyek.",
+  "nodes": [
+    {
+      "id": "app.shell",
+      "title": "Shell Electron & lifecycle",
+      "kind": "system",
+      "phase": 0,
+      "status": "done",
+      "summary": "Titik masuk main process: jendela 1360x840, single-instance lock, timer global (metrics 3 dtk, heartbeat 60 dtk, tick hibernasi 30 dtk), gerbang RAM measure, timer dihentikan saat quit. Sejak Fase 4-5: registerShortcuts (capture + screenshot), penjadwal pengingat, idle watcher, setAppUserModelId, unregister/stop saat quit. Bila start jatuh ke folder data cadangan, database yang lebih baru diadopsi (dicadangkan dulu).",
+      "tags": [
+        "main",
+        "electron",
+        "entry",
+        "lifecycle",
+        "window",
+        "startup",
+        "quit",
+        "bootstrap",
+        "database",
+        "adopt",
+        "shortcut",
+        "pengingat",
+        "idle"
+      ],
+      "files": [
+        {
+          "path": "src/main/index.ts",
+          "symbols": [
+            "createWindow",
+            "scheduleMeasure",
+            "scheduleMeasureWeb"
+          ]
+        },
+        {
+          "path": "src/main/metrics.ts",
+          "symbols": [
+            "getMetrics"
+          ]
+        },
+        {
+          "path": "src/main/db/adopt.ts",
+          "symbols": [
+            "adoptNewerDatabase"
+          ]
+        }
+      ],
+      "links": [
+        "sec.guard",
+        "ipc",
+        "db.engine",
+        "views.manager",
+        "timer.feature",
+        "tests.selftest",
+        "shortcuts.global",
+        "reminders.system",
+        "idle.timer"
+      ]
+    },
+    {
+      "id": "sec.guard",
+      "title": "Keamanan Electron & IPC trust",
+      "kind": "system",
+      "phase": 0,
+      "status": "done",
+      "summary": "contextIsolation + sandbox, tanpa nodeIntegration; navigasi & window.open diblokir (http(s) ke browser luar), semua izin ditolak, IPC hanya dari halaman app sendiri, view web sandbox + UA Chrome + preload tamu guest.js (WebAuthn/passkey dimatikan supaya tidak memunculkan dialog Windows Security). Jendela frameless: tombol minimize/maximize/close lewat IPC win:* yang divalidasi pengirimnya.",
+      "tags": [
+        "security",
+        "keamanan",
+        "csp",
+        "sandbox",
+        "trust",
+        "navigasi",
+        "permission",
+        "izin",
+        "frameless",
+        "webauthn",
+        "passkey",
+        "guest"
+      ],
+      "files": [
+        {
+          "path": "src/main/ipc/trust.ts",
+          "symbols": [
+            "trusted"
+          ]
+        },
+        {
+          "path": "src/main/index.ts",
+          "symbols": [
+            "createWindow"
+          ]
+        },
+        {
+          "path": "src/main/views/manager.ts",
+          "symbols": [
+            "chromeUserAgent"
+          ]
+        }
+      ],
+      "links": [
+        "ipc",
+        "app.shell",
+        "web.feature",
+        "preload.guest",
+        "components.title.bar"
+      ]
+    },
+    {
+      "id": "ipc",
+      "title": "Kontrak IPC & preload API",
+      "kind": "system",
+      "phase": 0,
+      "status": "done",
+      "summary": "Kontrak bertipe: AlipApi + konstanta IPC di shared/api.ts, diekspos sempit sebagai window.alip lewat preload, handler terdaftar di registerIpc (workspaces/tasks/subtasks/notes/quickNote/resources/profiles/views/launcher/time + inbox/reminders/shortcuts sejak Fase 4). Catatan cepat memakai channel quicknote:get/save. Event keluar: capture-request, reminders:update/new/open, inbox:update.",
+      "tags": [
+        "ipc",
+        "preload",
+        "api",
+        "bridge",
+        "channel",
+        "typed",
+        "invoke",
+        "inbox",
+        "pengingat",
+        "pintasan",
+        "event"
+      ],
+      "files": [
+        {
+          "path": "src/shared/api.ts",
+          "symbols": [
+            "IPC",
+            "AlipApi",
+            "Metrics",
+            "AppInfo",
+            "SaveResult",
+            "WindowState",
+            "ShortcutStatus"
+          ]
+        },
+        {
+          "path": "src/preload/index.ts",
+          "symbols": []
+        },
+        {
+          "path": "src/main/ipc/index.ts",
+          "symbols": [
+            "registerIpc"
+          ]
+        }
+      ],
+      "links": [
+        "app.shell",
+        "tasks.feature",
+        "timer.feature",
+        "resources.feature",
+        "views.manager",
+        "launcher",
+        "settings.engine",
+        "web.feature",
+        "inbox.feature",
+        "reminders.system",
+        "shortcuts.global"
+      ]
+    },
+    {
+      "id": "db.engine",
+      "title": "Mesin SQLite & migrasi",
+      "kind": "data",
+      "phase": 0,
+      "status": "done",
+      "summary": "better-sqlite3 membuka %APPDATA%/<app>/alip-workspace.db dengan WAL + foreign_keys ON; migrasi berurutan dicatat di schema_migrations (001 init, 002 native_path, 003 external, 004 inbox & pengingat, 005 timesheet & tools). Menambah migrasi = tambah file di migrations/ lalu daftarkan di MIGRATIONS.",
+      "tags": [
+        "sqlite",
+        "db",
+        "database",
+        "migration",
+        "migrasi",
+        "schema",
+        "wal",
+        "better-sqlite3",
+        "external",
+        "004",
+        "005"
+      ],
+      "files": [
+        {
+          "path": "src/main/db/index.ts",
+          "symbols": [
+            "openDb",
+            "getDbPath",
+            "closeDb"
+          ]
+        },
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/002_profiles_native_path.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/003_profiles_external.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/004_inbox_reminders.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/005_timesheet_tools.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "db.schema",
+        "repo",
+        "settings.engine"
+      ]
+    },
+    {
+      "id": "db.schema",
+      "title": "Skema 14 tabel (001–007)",
+      "kind": "data",
+      "phase": 0,
+      "status": "done",
+      "summary": "001_init.sql memuat seluruh model data bible bagian 8 (14 tabel); 002 menambah profiles.native_path, 003 profiles.external, 004 inbox ticket_ref/url + tasks.remind_muted, 005 template workspace/prioritas + tasks.recurrence_parent_id + task_resources.tool_id, 006 profiles.group_name (kelompok layanan Core/Web), 007 tabel quick_notes (catatan cepat). Sejak Fase 5-6 tabel snippets, task_templates, tools, layout, dan quick_notes dipakai kode.",
+      "tags": [
+        "schema",
+        "tabel",
+        "tables",
+        "sql",
+        "init",
+        "kolom",
+        "columns"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/002_profiles_native_path.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/003_profiles_external.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/004_inbox_reminders.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/005_timesheet_tools.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/006_profiles_group.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/007_quick_note.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "db.engine",
+        "data.tasks",
+        "data.time",
+        "data.resources",
+        "data.profiles",
+        "data.planned",
+        "data.settings",
+        "data.inbox",
+        "data.tools"
+      ]
+    },
+    {
+      "id": "data.tasks",
+      "title": "Tabel tasks, subtasks, notes, activity_log",
+      "kind": "data",
+      "phase": 1,
+      "status": "done",
+      "summary": "tasks: workspace_id, title, description, status, priority, due_at, waiting_since, last_touched_at, resume_note, recurrence_rule, recurrence_parent_id (005), template_id, source_inbox_item_id, remind_muted. Plus subtasks, notes, activity_log.",
+      "tags": [
+        "tasks",
+        "tabel",
+        "subtask",
+        "notes",
+        "activity",
+        "remind_muted",
+        "inbox",
+        "recurrence",
+        "template"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "repo",
+        "tasks.feature",
+        "taskdetail.feature",
+        "timer.feature",
+        "inbox.feature",
+        "reminders.system"
+      ]
+    },
+    {
+      "id": "data.time",
+      "title": "Tabel time_entries",
+      "kind": "data",
+      "phase": 1,
+      "status": "done",
+      "summary": "time_entries: task_id, started_at, ended_at, duration_seconds, note, source (manual|auto), synced_to_sunfish. Dipakai timer manual/otomatis, grid timesheet, penanda tersalin, dan heartbeat.",
+      "tags": [
+        "time",
+        "waktu",
+        "timer",
+        "entri",
+        "timesheet",
+        "durasi",
+        "jam",
+        "sunfish",
+        "auto",
+        "synced"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "timer.feature",
+        "repo",
+        "roadmap"
+      ]
+    },
+    {
+      "id": "data.resources",
+      "title": "Tabel task_resources",
+      "kind": "data",
+      "phase": 2,
+      "status": "done",
+      "summary": "task_resources: type (url|whatsapp|telegram|email|ticket|file|folder|launcher|tool), title, target, profile_id, launcher_app, meta_json. Satu baris per resource task.",
+      "tags": [
+        "resource",
+        "resources",
+        "tabel",
+        "url",
+        "folder",
+        "file",
+        "launcher",
+        "ticket"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "resources.feature",
+        "repo",
+        "web.feature"
+      ]
+    },
+    {
+      "id": "data.profiles",
+      "title": "Tabel profiles (sesi login)",
+      "kind": "data",
+      "phase": 3,
+      "status": "done",
+      "summary": "profiles: name, partition_id unik (persist:<id>, sesi login terpisah), service (whatsapp|telegram|gmail|outlook|zimbra|sunfish|support|kiro|generic), group_name, home_url, keep_alive, native_only, native_path, external. Kolom external (migrasi 003) menandai layanan yang dibuka di browser bawaan, bukan panel tertanam — dipakai untuk layanan yang login-nya lewat Google (Gmail default external). Kolom group_name (migrasi 006) menentukan kelompok layanan di sidebar (default: Core untuk WhatsApp/Telegram/Sunfish, Web untuk lainnya; bisa diubah per profil di Pengaturan → Layanan Web).",
+      "tags": [
+        "profile",
+        "profil",
+        "layanan",
+        "service",
+        "partition",
+        "login",
+        "sesi",
+        "whatsapp",
+        "telegram",
+        "gmail",
+        "external",
+        "browser",
+        "google"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/002_profiles_native_path.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/003_profiles_external.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/006_profiles_group.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "web.feature",
+        "views.manager",
+        "repo"
+      ]
+    },
+    {
+      "id": "data.planned",
+      "title": "Tabel 001 yang kini dipakai",
+      "kind": "data",
+      "phase": 6,
+      "status": "done",
+      "summary": "Semua tabel dari 001_init.sql sudah dipakai: inbox_items (Fase 4), snippets & task_templates (Fase 5), tools & layout (Fase 6). Node ini menyimpan catatan bahwa tidak ada tabel rencana yang tersisa.",
+      "tags": [
+        "data",
+        "tabel",
+        "tools",
+        "layout",
+        "snippets",
+        "template",
+        "dipakai"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "db.schema",
+        "tools.system",
+        "data.inbox",
+        "templates.feature",
+        "snippets.feature",
+        "dock.feature"
+      ]
+    },
+    {
+      "id": "data.settings",
+      "title": "Tabel settings (key-value JSON)",
+      "kind": "data",
+      "phase": 0,
+      "status": "done",
+      "summary": "settings: satu baris per seksi (general, paths, launchers, work, reminders, performance, appearance), nilainya JSON yang divalidasi zod.",
+      "tags": [
+        "settings",
+        "pengaturan",
+        "konfigurasi",
+        "config",
+        "kv",
+        "json"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "settings.engine",
+        "settings.ui"
+      ]
+    },
+    {
+      "id": "repo",
+      "title": "Repository CRUD & timer",
+      "kind": "system",
+      "phase": 1,
+      "status": "done",
+      "summary": "Lapisan data utama: workspace, task, subtask, catatan, timer & statistik, resource, profil, seed, activity_log, inbox & pengingat (Fase 4). Sejak Fase 5 juga timesheet (entri per rentang, edit manual, tandai tersalin), template, task berulang, snippet, dan stop timer idle; semua aturan status/waiting_since tetap di sini.",
+      "tags": [
+        "repo",
+        "repository",
+        "crud",
+        "data layer",
+        "query",
+        "timer",
+        "stats",
+        "seed",
+        "inbox",
+        "pengingat",
+        "timesheet",
+        "template",
+        "snippet",
+        "recurrence",
+        "idle"
+      ],
+      "files": [
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "createTask",
+            "updateTask",
+            "setStatus",
+            "listTasks",
+            "getTask",
+            "startTimer",
+            "stopTimer",
+            "heartbeat",
+            "recoverDanglingTimers",
+            "dayStats",
+            "addResource",
+            "addSubtask",
+            "saveNote",
+            "touchTask",
+            "seedDefaultsOnce",
+            "seedProfilesOnce",
+            "listWorkspaces",
+            "createWorkspace",
+            "updateWorkspace",
+            "archiveWorkspace",
+            "removeTask",
+            "setSubtaskDone",
+            "renameSubtask",
+            "removeSubtask",
+            "listResources",
+            "getResource",
+            "removeResource",
+            "noteResourcesOpened",
+            "listProfiles",
+            "getProfile",
+            "createProfile",
+            "updateProfile",
+            "removeProfile",
+            "listInbox",
+            "getInbox",
+            "addInboxItem",
+            "makeInboxTask",
+            "linkInboxTask",
+            "snoozeInbox",
+            "ignoreInbox",
+            "restoreInbox",
+            "listTasksForReminders",
+            "listInboxForReminders",
+            "muteTaskReminder",
+            "stopTimerIdle",
+            "listTimeEntries",
+            "updateTimeEntry",
+            "addTimeEntry",
+            "markEntriesSynced",
+            "unsyncedEntriesCount",
+            "listTemplates",
+            "createTemplate",
+            "updateTemplate",
+            "removeTemplate",
+            "createTaskFromTemplate",
+            "listSnippets",
+            "createSnippet",
+            "updateSnippet",
+            "removeSnippet",
+            "getQuickNote",
+            "saveQuickNote",
+            "listActiveTimers",
+            "stopTimerForTask"
+          ]
+        }
+      ],
+      "links": [
+        "db.engine",
+        "data.tasks",
+        "data.time",
+        "data.tools",
+        "tasks.feature",
+        "timer.feature",
+        "workspaces.feature",
+        "resources.feature",
+        "settings.engine",
+        "inbox.feature",
+        "reminders.system",
+        "timesheet.feature",
+        "templates.feature",
+        "snippets.feature",
+        "data.inbox"
+      ]
+    },
+    {
+      "id": "settings.engine",
+      "title": "Mesin pengaturan (zod + validasi)",
+      "kind": "system",
+      "phase": 0,
+      "status": "done",
+      "summary": "Skema zod per seksi (general, paths, launchers, work, reminders, performance, shortcuts, spreadsheet, appearance). Nilai tersimpan digabung ke default lalu divalidasi; setSection lewat IPC langsung mendaftar ulang pintasan dan menghitung ulang pengingat. Sejak Fase 5: work.autoStartTimer & idleMinutes dipakai timer otomatis, shortcuts.screenshot, dan seksi spreadsheet (mode + profil web).",
+      "tags": [
+        "settings",
+        "pengaturan",
+        "zod",
+        "skema",
+        "validasi",
+        "default",
+        "shortcuts",
+        "pintasan",
+        "reminders",
+        "pengingat",
+        "spreadsheet",
+        "idle",
+        "auto-start"
+      ],
+      "files": [
+        {
+          "path": "src/shared/settings.ts",
+          "symbols": [
+            "settingsSchemas",
+            "DEFAULT_SETTINGS",
+            "SettingsSectionKey",
+            "Settings",
+            "isSettingsSection"
+          ]
+        },
+        {
+          "path": "src/main/settings/repository.ts",
+          "symbols": [
+            "getAllSettings",
+            "setSection",
+            "SetResult"
+          ]
+        }
+      ],
+      "links": [
+        "settings.ui",
+        "data.settings",
+        "ipc",
+        "paths.settings",
+        "performance.settings"
+      ]
+    },
+    {
+      "id": "settings.ui",
+      "title": "Halaman Pengaturan",
+      "kind": "ui",
+      "phase": 1,
+      "status": "done",
+      "summary": "SettingsPage merender SETTINGS_SECTIONS; form per seksi dengan tipe field number/time/days/text/path/bool. Sejak Fase 5-6: seksi Pintasan menampilkan status dua pintasan global, seksi Tool Saya memakai ToolsEditor, seksi Spreadsheet memakai SpreadsheetEditor; seksi Tampilan/Data masih kerangka Fase 7.",
+      "tags": [
+        "settings",
+        "pengaturan",
+        "form",
+        "ui",
+        "seksi",
+        "section",
+        "workdays",
+        "pintasan",
+        "tools",
+        "spreadsheet",
+        "toggle"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/settings/SettingsPage.tsx",
+          "symbols": [
+            "SettingsPage"
+          ]
+        },
+        {
+          "path": "src/shared/settings-ui.ts",
+          "symbols": [
+            "SETTINGS_SECTIONS",
+            "FieldDef",
+            "SectionDef"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/settings.ts",
+          "symbols": [
+            "useSettings"
+          ]
+        }
+      ],
+      "links": [
+        "settings.engine",
+        "paths.settings",
+        "web.feature",
+        "performance.settings",
+        "roadmap",
+        "shortcuts.global",
+        "reminders.system",
+        "tools.system",
+        "spreadsheet.settings"
+      ]
+    },
+    {
+      "id": "paths.settings",
+      "title": "Seksi Aplikasi & Path + Aplikasi Saya",
+      "kind": "feature",
+      "phase": 2,
+      "status": "done",
+      "summary": "Path VS Code, Kiro, Godot, Excel, GridCraft, Python: tombol Telusuri, Tes buka (Python dicek --version), Deteksi otomatis (hanya isi kosong, tetap perlu Simpan). Aplikasi Saya (exe pribadi) ikut di sini.",
+      "tags": [
+        "paths",
+        "path",
+        "aplikasi",
+        "vscode",
+        "kiro",
+        "godot",
+        "excel",
+        "gridcraft",
+        "python",
+        "deteksi",
+        "telusuri"
+      ],
+      "files": [
+        {
+          "path": "src/shared/settings-ui.ts",
+          "symbols": [
+            "SETTINGS_SECTIONS"
+          ]
+        },
+        {
+          "path": "src/main/launcher/index.ts",
+          "symbols": [
+            "testPath",
+            "detectPaths",
+            "pickPath"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/settings/CustomAppsEditor.tsx",
+          "symbols": [
+            "CustomAppsEditor"
+          ]
+        }
+      ],
+      "links": [
+        "settings.ui",
+        "launcher",
+        "customapps.feature"
+      ]
+    },
+    {
+      "id": "performance.settings",
+      "title": "Seksi Performa & monitor view",
+      "kind": "feature",
+      "phase": 3,
+      "status": "done",
+      "summary": "hibernateMinutes (default 10) dan maxLiveViews (default 3) di Pengaturan; ViewsMonitor menampilkan RAM per view + tombol hibernasi manual & Mode hemat.",
+      "tags": [
+        "performance",
+        "performa",
+        "ram",
+        "hibernasi",
+        "monitor",
+        "mode hemat",
+        "memory"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/settings/ViewsMonitor.tsx",
+          "symbols": [
+            "ViewsMonitor"
+          ]
+        },
+        {
+          "path": "src/shared/settings-ui.ts",
+          "symbols": [
+            "SETTINGS_SECTIONS"
+          ]
+        }
+      ],
+      "links": [
+        "settings.ui",
+        "views.manager",
+        "metrics",
+        "web.feature"
+      ]
+    },
+    {
+      "id": "launcher",
+      "title": "Peluncur app native",
+      "kind": "system",
+      "phase": 2,
+      "status": "done",
+      "summary": "Peluncur app native: argumen Godot --editor --path, blokir ekstensi berbahaya, Buka semua, tes path, deteksi otomatis, profil native-only, pick file/folder (termasuk multi-select). Resource Aplikasi boleh tanpa target. Sejak Fase 6: file spreadsheet dibuka lewat Pengaturan → Spreadsheet (GridCraft/Excel/profil web) dan resource hasil tool bisa dibuka sebagai file.",
+      "tags": [
+        "launcher",
+        "buka",
+        "open",
+        "native",
+        "exe",
+        "godot",
+        "vscode",
+        "kiro",
+        "excel",
+        "args",
+        "blocklist",
+        "tanpa target",
+        "pick",
+        "spreadsheet",
+        "gridcraft"
+      ],
+      "files": [
+        {
+          "path": "src/main/launcher/index.ts",
+          "symbols": [
+            "BLOCKED_EXT",
+            "buildLaunchArgs",
+            "tokenizeArgs",
+            "buildCustomArgs",
+            "appLabel",
+            "openResource",
+            "openResourceWith",
+            "openAll",
+            "openNativeProfile",
+            "openWithApp",
+            "testPath",
+            "detectPaths",
+            "pickPath",
+            "openProfileInBrowser",
+            "openProfileExternally",
+            "openSpreadsheet",
+            "pickPaths"
+          ]
+        }
+      ],
+      "links": [
+        "resources.feature",
+        "paths.settings",
+        "customapps.feature",
+        "ipc",
+        "spreadsheet.settings"
+      ]
+    },
+    {
+      "id": "views.manager",
+      "title": "ViewManager (web view, hibernasi, split)",
+      "kind": "system",
+      "phase": 3,
+      "status": "done",
+      "summary": "Satu WebContentsView per profil (partition persist:<id>), status active/warm/hibernated, batas maxLiveViews, hibernasi otomatis, badge judul, overlay saat dialog/palette/jendela tool; navigate (address bar), DevTools, zoom, stop. View tamu memakai preload guest.js (WebAuthn/passkey dimatikan) dan mendeteksi halaman penolakan login Google (detectLoginBlocked → ViewInfo.loginBlocked) untuk memunculkan tawaran \"Buka di Chrome\".",
+      "tags": [
+        "viewmanager",
+        "webview",
+        "view",
+        "hibernasi",
+        "hibernate",
+        "split",
+        "badge",
+        "overlay",
+        "partition",
+        "keepalive",
+        "devtools",
+        "zoom",
+        "navigate",
+        "stop",
+        "loginblocked",
+        "passkey",
+        "google",
+        "guest"
+      ],
+      "files": [
+        {
+          "path": "src/main/views/manager.ts",
+          "symbols": [
+            "ViewManager",
+            "parseBadge",
+            "chromeUserAgent",
+            "PerfSettings",
+            "ProfileLite",
+            "normalizeUrl",
+            "detectLoginBlocked"
+          ]
+        },
+        {
+          "path": "src/main/views/index.ts",
+          "symbols": [
+            "createViewManager",
+            "viewManager",
+            "destroyViewManager",
+            "viewCounts"
+          ]
+        }
+      ],
+      "links": [
+        "web.feature",
+        "data.profiles",
+        "metrics",
+        "performance.settings",
+        "sec.guard",
+        "ipc"
+      ]
+    },
+    {
+      "id": "metrics",
+      "title": "Metrik RAM & status bar",
+      "kind": "system",
+      "phase": 3,
+      "status": "done",
+      "summary": "getMetrics() membaca app.getAppMetrics() (privateBytes per proses) + jumlah view aktif/hibernasi; dikirim tiap 3 dtk dan ditampilkan di StatusBar bersama jam minggu ini.",
+      "tags": [
+        "metrics",
+        "ram",
+        "memory",
+        "metrik",
+        "status bar",
+        "proses",
+        "hemat"
+      ],
+      "files": [
+        {
+          "path": "src/main/metrics.ts",
+          "symbols": [
+            "getMetrics"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/StatusBar.tsx",
+          "symbols": [
+            "StatusBar"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/metrics.ts",
+          "symbols": [
+            "useMetrics"
+          ]
+        }
+      ],
+      "links": [
+        "app.shell",
+        "views.manager",
+        "ui.shell"
+      ]
+    },
+    {
+      "id": "tasks.feature",
+      "title": "Fitur task (CRUD & daftar)",
+      "kind": "feature",
+      "phase": 1,
+      "status": "done",
+      "summary": "Buat/ubah/hapus task, ubah status/prioritas/tenggat/workspace; daftar TasksView dengan filter view (today/waiting/done/workspace) dan TaskCard yang menampilkan timer & lencana pending.",
+      "tags": [
+        "task",
+        "tasks",
+        "daftar",
+        "list",
+        "kartu",
+        "card",
+        "crud",
+        "prioritas"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/tasks/TasksView.tsx",
+          "symbols": [
+            "TasksView"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/TaskCard.tsx",
+          "symbols": [
+            "TaskCard"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/Dialogs.tsx",
+          "symbols": [
+            "Dialogs"
+          ]
+        }
+      ],
+      "links": [
+        "taskdetail.feature",
+        "repo",
+        "today.feature",
+        "timer.feature",
+        "ipc"
+      ]
+    },
+    {
+      "id": "taskdetail.feature",
+      "title": "Detail task (tab & resource)",
+      "kind": "ui",
+      "phase": 1,
+      "status": "done",
+      "summary": "Detail task: header (judul bisa diedit) lalu tab Ringkasan/Catatan/Aktivitas. Tab Ringkasan berurutan: resource terkait (termasuk hasil tool) → subtask → catatan 'terakhir sampai mana' (resume_note) → baris aksi (mulai/jeda timer, tandai menunggu, selesai, bisukan pengingat, simpan sebagai template, hapus) → status/prioritas/tenggat/workspace/berulang (task berulang membuat occurrence berikutnya saat selesai). Deskripsi tidak lagi ditampilkan; catatan Markdown ada di tab Catatan dan timeline ada di tab Aktivitas.",
+      "tags": [
+        "detail task",
+        "task detail",
+        "catatan",
+        "subtask",
+        "aktivitas",
+        "resource",
+        "resume",
+        "pengingat",
+        "mute",
+        "template",
+        "berulang"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/tasks/TaskDetail.tsx",
+          "symbols": [
+            "TaskDetail",
+            "TaskDetailPane"
+          ]
+        }
+      ],
+      "links": [
+        "tasks.feature",
+        "timer.feature",
+        "resources.feature",
+        "ui.shell",
+        "reminders.system",
+        "templates.feature"
+      ]
+    },
+    {
+      "id": "timer.feature",
+      "title": "Timer manual & resume note",
+      "kind": "feature",
+      "phase": 1,
+      "status": "done",
+      "summary": "Beberapa timer boleh berjalan bersamaan (satu sesi per task; task yang sama tidak dibuatkan entri ganda). Tombol Jeda menghentikan timer task itu saja lewat dialog resume_note; menunggu/selesai menghentikan timer task itu; widget sidebar mendaftar semua timer berjalan dengan jeda per task dan Jeda semua. Heartbeat 1 menit, pemulihan sesi menggantung, statistik hari & minggu. Sejak Fase 5: auto-start saat task dibuka (dapat dimatikan, timer task lain tidak dihentikan), auto-stop idle untuk semua timer dengan durasi dipotong sampai detik terakhir aktif (source auto), dan entri bisa diedit dari Timesheet.",
+      "tags": [
+        "timer",
+        "waktu",
+        "jam",
+        "mulai",
+        "jeda",
+        "stop",
+        "resume",
+        "multi timer",
+        "beberapa timer",
+        "time tracking",
+        "idle",
+        "otomatis",
+        "auto"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/lib/actions.ts",
+          "symbols": [
+            "toggleTimer",
+            "requestStop"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "startTimer",
+            "stopTimer",
+            "stopTimerForTask",
+            "listActiveTimers",
+            "heartbeat",
+            "recoverDanglingTimers",
+            "dayStats"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/Sidebar.tsx",
+          "symbols": [
+            "TimerWidget",
+            "Sidebar"
+          ]
+        }
+      ],
+      "links": [
+        "tasks.feature",
+        "today.feature",
+        "data.time",
+        "repo",
+        "ipc",
+        "idle.timer",
+        "timesheet.feature"
+      ]
+    },
+    {
+      "id": "today.feature",
+      "title": "Hari Ini (dashboard & grouping)",
+      "kind": "feature",
+      "phase": 1,
+      "status": "done",
+      "summary": "Sapaan + 4 kartu (task hari ini, menunggu, pending lama, jam hari ini), progres mingguan, grup Urgent → Menunggu balasan → Hari ini → Pending lama sesuai aturan grouping.ts.",
+      "tags": [
+        "today",
+        "hari ini",
+        "dashboard",
+        "grouping",
+        "urgent",
+        "pending",
+        "stale",
+        "progres"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/tasks/Dashboard.tsx",
+          "symbols": [
+            "Dashboard"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/grouping.ts",
+          "symbols": [
+            "groupToday",
+            "isStale",
+            "compareTasks",
+            "Groups",
+            "staleDays"
+          ]
+        }
+      ],
+      "links": [
+        "tasks.feature",
+        "timer.feature",
+        "settings.engine",
+        "ui.shell"
+      ]
+    },
+    {
+      "id": "palette.feature",
+      "title": "Command palette (Ctrl+K)",
+      "kind": "feature",
+      "phase": 1,
+      "status": "done",
+      "summary": "Cari task/workspace/layar/snippet/aksi: task baru, penutup hari, template & task berulang, kelola snippet, mode hemat, buka layanan; hasil snippet disalin atau membuka dialog variabel; Ctrl+Enter pada task memulai timer.",
+      "tags": [
+        "palette",
+        "ctrl+k",
+        "cari",
+        "snippet",
+        "template",
+        "penutup hari",
+        "aksi"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/components/CommandPalette.tsx",
+          "symbols": [
+            "CommandPalette"
+          ]
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "tasks.feature",
+        "web.feature",
+        "timer.feature",
+        "snippets.feature",
+        "templates.feature",
+        "timesheet.feature"
+      ]
+    },
+    {
+      "id": "workspaces.feature",
+      "title": "Workspace",
+      "kind": "feature",
+      "phase": 1,
+      "status": "done",
+      "summary": "Buat/ubah nama-warna/arsip workspace; lima contoh dibuat sekali saat pertama jalan (Support Tiket, Laporan Mingguan, Development, Admin & HR, Proyek Game Kampung).",
+      "tags": [
+        "workspace",
+        "workspaces",
+        "warna",
+        "arsip",
+        "archive",
+        "seed",
+        "contoh"
+      ],
+      "files": [
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "listWorkspaces",
+            "createWorkspace",
+            "updateWorkspace",
+            "archiveWorkspace",
+            "seedDefaultsOnce"
+          ]
+        }
+      ],
+      "links": [
+        "repo",
+        "tasks.feature",
+        "ui.shell"
+      ]
+    },
+    {
+      "id": "resources.feature",
+      "title": "Resource per task (folder/file/app/link)",
+      "kind": "feature",
+      "phase": 2,
+      "status": "done",
+      "summary": "Resource Terkait di tab Ringkasan: Folder, File, Aplikasi, Link web (Fase 3 menambah layanan web). Klik kartu membuka; tombol cepat Buka di VS Code/Kiro/Godot/Excel/GridCraft; Buka semua berurutan.",
+      "tags": [
+        "resource",
+        "resources",
+        "folder",
+        "file",
+        "link",
+        "buka",
+        "open all",
+        "terkait"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/tasks/TaskDetail.tsx",
+          "symbols": [
+            "TaskDetail"
+          ]
+        },
+        {
+          "path": "src/main/launcher/index.ts",
+          "symbols": [
+            "openResource",
+            "openResourceWith",
+            "openAll"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "addResource",
+            "removeResource",
+            "noteResourcesOpened"
+          ]
+        }
+      ],
+      "links": [
+        "launcher",
+        "taskdetail.feature",
+        "web.feature",
+        "data.resources",
+        "ipc"
+      ]
+    },
+    {
+      "id": "web.feature",
+      "title": "Layanan web tertanam (webview)",
+      "kind": "feature",
+      "phase": 3,
+      "status": "done",
+      "summary": "Browser tertanam per panel: tab profil, address bar, mundur/maju, muat ulang/stop, home, zoom, inspector (DevTools), buka di browser luar, plus profil bertanda \"buka di browser luar\" (external: klik sidebar langsung membuka tab di browser bawaan) dan tombol Buka di browser (ringan) dan Jendela Chrome (profil terpisah) dan banner saat Google menolak login. Layout split disimpan: layanan yang sudah ada di layout membuka split itu lagi, sedangkan layanan baru saat layout terisi tampil penuh (web.full) tanpa menempel ke panel WA/Telegram sampai pengguna memilih \"Bagi layar dengan…\". Tab, split, dan rasio pembatas disimpan di localStorage. Sejak Fase 4, badge dari judul halaman bisa diklik di Inbox untuk membuat item (isi pesan tidak dibaca).",
+      "tags": [
+        "webview",
+        "web",
+        "panel",
+        "split",
+        "tab",
+        "hibernasi",
+        "profil",
+        "login",
+        "badge",
+        "inbox"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/web/WebView.tsx",
+          "symbols": [
+            "WebView",
+            "Panel",
+            "PanelToolbar",
+            "AddressBar"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/actions.ts",
+          "symbols": [
+            "openProfile",
+            "openWebPanel",
+            "openResource",
+            "toggleTimer",
+            "requestStop",
+            "openTask",
+            "openResourceWith",
+            "openAllResources",
+            "openCapture",
+            "openReminder"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/web.ts",
+          "symbols": [
+            "useWeb"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/settings/ServicesEditor.tsx",
+          "symbols": [
+            "ServicesEditor"
+          ]
+        },
+        {
+          "path": "src/main/views/manager.ts",
+          "symbols": [
+            "ViewManager"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/ui.ts",
+          "symbols": [
+            "useUi",
+            "loadWeb",
+            "saveWeb"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/persist.ts",
+          "symbols": [
+            "loadJson",
+            "saveJson"
+          ]
+        }
+      ],
+      "links": [
+        "views.manager",
+        "data.profiles",
+        "resources.feature",
+        "performance.settings",
+        "ipc",
+        "ui.theme",
+        "main.browser",
+        "preload.guest",
+        "components.title.bar",
+        "inbox.feature"
+      ]
+    },
+    {
+      "id": "customapps.feature",
+      "title": "Aplikasi Saya (.exe pribadi)",
+      "kind": "feature",
+      "phase": 3,
+      "status": "done",
+      "summary": "Daftar aplikasi pribadi (nama, path, args dengan {target}) di Pengaturan → Aplikasi & Path; muncul sebagai 'Buka dengan' pada resource Aplikasi, dengan validasi path hilang/terhapus.",
+      "tags": [
+        "aplikasi saya",
+        "custom app",
+        "exe",
+        "box.exe",
+        "launchers",
+        "buka dengan"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/settings/CustomAppsEditor.tsx",
+          "symbols": [
+            "CustomAppsEditor"
+          ]
+        },
+        {
+          "path": "src/main/launcher/index.ts",
+          "symbols": [
+            "appLabel",
+            "openWithApp",
+            "buildCustomArgs"
+          ]
+        },
+        {
+          "path": "src/shared/data.ts",
+          "symbols": [
+            "customAppRef",
+            "isCustomApp",
+            "CUSTOM_APP_PREFIX",
+            "STATUSES",
+            "PRIORITIES",
+            "Status",
+            "Priority",
+            "STATUS_LABEL",
+            "PRIORITY_LABEL",
+            "workspaceInput",
+            "WorkspaceInput",
+            "taskCreateInput",
+            "TaskCreateInput",
+            "taskPatch",
+            "TaskPatch",
+            "Workspace",
+            "TaskRow",
+            "Subtask",
+            "TimeEntryRow",
+            "ActivityRow",
+            "TaskDetail",
+            "ActiveTimer",
+            "DayStats",
+            "LAUNCHER_APPS",
+            "LauncherApp",
+            "LAUNCHER_LABEL",
+            "NATIVE_RESOURCE_TYPES",
+            "WEB_RESOURCE_TYPES",
+            "RESOURCE_TYPES",
+            "ResourceType",
+            "isWebResource",
+            "PROFILE_SERVICES",
+            "ProfileService",
+            "SERVICE_LABEL",
+            "resourceTypeForService",
+            "resourceInput",
+            "ResourceInput",
+            "ResourceRow",
+            "WebTarget",
+            "LaunchResult",
+            "OpenAllResult",
+            "profileInput",
+            "ProfileInput",
+            "ProfileRow",
+            "ViewState",
+            "ViewInfo",
+            "SlotBounds",
+            "ViewSlot",
+            "INBOX_SOURCES",
+            "InboxSource",
+            "INBOX_SOURCE_LABEL",
+            "INBOX_STATUSES",
+            "InboxStatus",
+            "INBOX_STATUS_LABEL",
+            "parseTicketRef",
+            "parseFirstUrl",
+            "inboxTitle",
+            "inboxInput",
+            "InboxInput",
+            "inboxTaskInput",
+            "InboxTaskInput",
+            "InboxRow",
+            "REMINDER_KINDS",
+            "ReminderKind",
+            "Reminder",
+            "ReminderTaskLite",
+            "ReminderInboxLite",
+            "TimeEntryWithTask",
+            "RECURRENCE_FREQS",
+            "RecurrenceFreq",
+            "RecurrenceRule",
+            "recurrenceRuleSchema",
+            "parseRecurrence",
+            "describeRecurrence",
+            "nextOccurrence",
+            "templateInput",
+            "TemplateInput",
+            "TemplateRow",
+            "snippetInput",
+            "SnippetInput",
+            "SnippetRow",
+            "snippetVariables",
+            "fillSnippet",
+            "CORE_SERVICES",
+            "defaultProfileGroup"
+          ]
+        }
+      ],
+      "links": [
+        "launcher",
+        "paths.settings",
+        "resources.feature",
+        "settings.engine"
+      ]
+    },
+    {
+      "id": "ui.shell",
+      "title": "Kerangka renderer & store",
+      "kind": "ui",
+      "phase": 1,
+      "status": "done",
+      "summary": "Kerangka renderer: routing view (inbox, timesheet, settings, web, task), Sidebar (bisa digeser/diciutkan; bagian Tugas, Workspace, Tools, dan tiap kelompok Layanan bisa dilipat; kelompok layanan diambil dari groupName profil) dengan hitungan inbox dan daftar TOOLS yang bisa ditarik, StatusBar, Dialogs, palette, toast, ErrorBoundary; store Zustand; shortcut Ctrl+K/Ctrl+N + Ctrl+Shift+N cadangan. App berlangganan event view/inbox/pengingat/capture/idle/tool, memuat tools, dan menyusun layout konten + dock kanan/bawah. ToolWindow dan dock memakai ToolPanel yang sama. Overlay (dialog, palette, lonceng pengingat, jendela tool) menyembunyikan view web selama terbuka karena WebContentsView selalu menimpa DOM berapa pun z-index-nya.",
+      "tags": [
+        "ui",
+        "renderer",
+        "routing",
+        "sidebar",
+        "status bar",
+        "zustand",
+        "store",
+        "shortcut",
+        "toast",
+        "error boundary",
+        "glass",
+        "titlebar",
+        "inbox",
+        "pengingat",
+        "tools",
+        "dock"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/App.tsx",
+          "symbols": [
+            "App"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/Sidebar.tsx",
+          "symbols": [
+            "Sidebar"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/ui.ts",
+          "symbols": [
+            "useUi",
+            "ViewId",
+            "WebState",
+            "Dialog",
+            "Notice",
+            "WebPanel"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/StatusBar.tsx",
+          "symbols": [
+            "StatusBar"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/ErrorBoundary.tsx",
+          "symbols": [
+            "ErrorBoundary"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/persist.ts",
+          "symbols": [
+            "loadJson",
+            "saveJson"
+          ]
+        }
+      ],
+      "links": [
+        "today.feature",
+        "palette.feature",
+        "web.feature",
+        "metrics",
+        "settings.ui",
+        "components.title.bar",
+        "inbox.feature",
+        "reminders.system",
+        "shortcuts.global",
+        "timesheet.feature",
+        "tools.system",
+        "dock.feature"
+      ]
+    },
+    {
+      "id": "ui.data",
+      "title": "Store data & helper renderer",
+      "kind": "ui",
+      "phase": 1,
+      "status": "done",
+      "summary": "useData menyimpan tasks/workspaces/task terpilih/timer aktif dan menyegarkan stats tiap 30 dtk; actions.ts membungkus alur (buka task, toggle timer, buka profil/resource, tangkap cepat, buka sasaran pengingat); format.ts menyediakan format tanggal/jam Indonesia termasuk fmtRelative untuk inbox.",
+      "tags": [
+        "renderer",
+        "store",
+        "data",
+        "helper",
+        "format",
+        "tanggal",
+        "aksi",
+        "capture",
+        "pengingat"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/store/data.ts",
+          "symbols": [
+            "useData"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/actions.ts",
+          "symbols": [
+            "openTask",
+            "toggleTimer",
+            "openAllResources"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/format.ts",
+          "symbols": [
+            "fmtClock",
+            "fmtDue",
+            "greeting",
+            "fmtDuration",
+            "startOfDay",
+            "endOfDay",
+            "daysSince",
+            "fmtTime",
+            "fmtDateTime",
+            "fmtLongDate",
+            "toLocalInput",
+            "fromLocalInput",
+            "fmtRelative"
+          ]
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "tasks.feature",
+        "timer.feature",
+        "ipc",
+        "inbox.feature",
+        "reminders.system"
+      ]
+    },
+    {
+      "id": "ui.primitives",
+      "title": "Primitif UI & entry renderer",
+      "kind": "ui",
+      "phase": 0,
+      "status": "done",
+      "summary": "Bahan dasar tampilan: StatusPill/PriorityBadge/btn/input/Modal, hook useNow (detak widget timer), bootstrap main.tsx + index.html, Tailwind index.css, dan deklarasi tipe env/raw.",
+      "tags": [
+        "ui",
+        "primitif",
+        "komponen",
+        "modal",
+        "tombol",
+        "css",
+        "tailwind",
+        "bootstrap",
+        "entry"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/components/ui.tsx",
+          "symbols": [
+            "StatusPill",
+            "PriorityBadge",
+            "btn",
+            "input",
+            "Modal",
+            "WS_COLORS",
+            "iconBtn"
+          ]
+        },
+        {
+          "path": "src/renderer/src/lib/useNow.ts",
+          "symbols": [
+            "useNow"
+          ]
+        },
+        {
+          "path": "src/renderer/src/main.tsx",
+          "symbols": []
+        },
+        {
+          "path": "src/renderer/index.html",
+          "symbols": []
+        },
+        {
+          "path": "src/renderer/src/index.css",
+          "symbols": []
+        },
+        {
+          "path": "src/renderer/src/env.d.ts",
+          "symbols": []
+        },
+        {
+          "path": "src/main/raw.d.ts",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "timer.feature",
+        "build"
+      ]
+    },
+    {
+      "id": "docs.bible",
+      "title": "Bible (sumber kebenaran produk)",
+      "kind": "doc",
+      "phase": 0,
+      "status": "done",
+      "summary": "SUPERAPP_BIBLE_v1.1.md: tujuan, prinsip, tech stack, aturan & gerbang RAM, model data, fitur per layar, menu Pengaturan, Tool Manager, roadmap 0-7, non-tujuan, kriteria selesai.",
+      "tags": [
+        "bible",
+        "dokumen",
+        "roadmap",
+        "spesifikasi",
+        "ram",
+        "gerbang",
+        "sumber kebenaran"
+      ],
+      "files": [
+        {
+          "path": "docs/SUPERAPP_BIBLE_v1.1.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "docs.phases",
+        "roadmap",
+        "tests.selftest"
+      ]
+    },
+    {
+      "id": "docs.phases",
+      "title": "Dokumen per fase (0-6)",
+      "kind": "doc",
+      "phase": 0,
+      "status": "done",
+      "summary": "Dokumen per fase 0-6 + catatan pembaruan: tema kaca/font, frameless, split web, browser luar & login Google, passkey dimatikan, catatan integritas Windows, inbox & pengingat (4), timesheet/timer otomatis/template/snippet (5), Tool Manager/tool bawaan/dock (6). Setiap dokumen berisi cara uji, keputusan, gerbang, dan hal yang belum terverifikasi.",
+      "tags": [
+        "fase",
+        "dokumentasi",
+        "test",
+        "pengujian",
+        "penyimpangan",
+        "docs",
+        "inbox",
+        "pengingat",
+        "pintasan",
+        "timesheet",
+        "tools",
+        "dock"
+      ],
+      "files": [
+        {
+          "path": "docs/fase-0.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-1.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-2.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-3.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-4.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-5.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-6.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/pembaruan-ui.md",
+          "symbols": []
+        },
+        {
+          "path": "docs/pembaruan-tampilan-2.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "docs.bible",
+        "roadmap",
+        "tests.selftest",
+        "ui.theme",
+        "main.browser",
+        "preload.guest",
+        "components.title.bar",
+        "inbox.feature",
+        "reminders.system",
+        "timesheet.feature",
+        "templates.feature",
+        "snippets.feature",
+        "tools.system",
+        "builtin.tools",
+        "dock.feature"
+      ]
+    },
+    {
+      "id": "build",
+      "title": "Build, skrip npm, packaging",
+      "kind": "build",
+      "phase": 0,
+      "status": "done",
+      "summary": "Skrip setup/dev/build/measure/dist/setup:python (NSIS). productName TN-Workspace, folder data alip-workspace. electron-vite + Tailwind v3, font DM Sans/Host Grotesk/Fragment Mono dibundel. electron-builder memuat out/** dan extraResources runtime/ untuk Python portable.",
+      "tags": [
+        "build",
+        "skrip",
+        "npm",
+        "packaging",
+        "nsis",
+        "installer",
+        "python",
+        "runtime",
+        "electron-vite"
+      ],
+      "files": [
+        {
+          "path": "package.json",
+          "symbols": []
+        },
+        {
+          "path": "electron.vite.config.ts",
+          "symbols": []
+        },
+        {
+          "path": "electron-builder.yml",
+          "symbols": []
+        },
+        {
+          "path": "TN-WorkSpace.bat",
+          "symbols": []
+        },
+        {
+          "path": "tailwind.config.cjs",
+          "symbols": []
+        },
+        {
+          "path": "src/renderer/src/index.css",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "app.shell",
+        "tests.selftest",
+        "preload.guest",
+        "tools.system"
+      ]
+    },
+    {
+      "id": "tests.selftest",
+      "title": "Self-test & gerbang RAM",
+      "kind": "system",
+      "phase": 1,
+      "status": "done",
+      "summary": "runSelfTests berisi 163 pemeriksaan: pengaturan, migrasi 001-006, task/timer, resource, launcher, web, inbox, pengingat, timesheet (entri, edit, tandai tersalin, idle), template/berulang, snippet, tool manager (impor, runner proses anak, dock, hapus), tool bawaan (Image Resizer/File Manager), dan ViewManager dengan server lokal. Dipanggil npm run measure (idle <300 MB) dan measure:web.",
+      "tags": [
+        "test",
+        "selftest",
+        "uji",
+        "measure",
+        "ram",
+        "gerbang",
+        "gate",
+        "regresi",
+        "timesheet",
+        "tools",
+        "dock"
+      ],
+      "files": [
+        {
+          "path": "src/main/selftest.ts",
+          "symbols": [
+            "runSelfTests"
+          ]
+        }
+      ],
+      "links": [
+        "app.shell",
+        "views.manager",
+        "docs.phases",
+        "build",
+        "inbox.feature",
+        "reminders.system",
+        "repo",
+        "timesheet.feature",
+        "tools.system",
+        "dock.feature"
+      ]
+    },
+    {
+      "id": "roadmap",
+      "title": "Sisa roadmap (Fase 7)",
+      "kind": "planned",
+      "phase": 7,
+      "status": "planned",
+      "summary": "Fase 0-6 selesai. Belum: backup database + ekspor JSON, tema terang, pintasan lengkap, installer final, optimasi (Fase 7). Background Remover belum dibuat (tool bawaan terakhir).",
+      "tags": [
+        "roadmap",
+        "belum",
+        "planned",
+        "backup",
+        "ekspor",
+        "tema terang",
+        "installer",
+        "fase 7",
+        "background remover"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/Placeholder.tsx",
+          "symbols": [
+            "Placeholder"
+          ]
+        },
+        {
+          "path": "src/shared/settings-ui.ts",
+          "symbols": [
+            "SETTINGS_SECTIONS"
+          ]
+        },
+        {
+          "path": "docs/fase-6.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "docs.bible",
+        "data.planned",
+        "ui.shell",
+        "settings.ui",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "dev.tools",
+      "title": "Alat pengembangan (demo/screenshot)",
+      "kind": "system",
+      "phase": 0,
+      "status": "done",
+      "summary": "Alat pengembangan: ALIP_DEMO=1 mengisi database contoh (task, inbox, entri timesheet, template, snippet), ALIP_SHOTS_DIR menjalankan runShots (termasuk layar inbox, timesheet, penutup hari, template, Tool Saya, Image Resizer, dock) lalu keluar. ALIP_USER_DATA mengarahkan data ke folder sementara agar database harian tidak tersentuh.",
+      "tags": [
+        "dev",
+        "shots",
+        "screenshot",
+        "demo",
+        "seed",
+        "verifikasi",
+        "timesheet",
+        "tools",
+        "dock"
+      ],
+      "files": [
+        {
+          "path": "src/main/devshots.ts",
+          "symbols": [
+            "seedDemo",
+            "runShots",
+            "SHOTS_DIR"
+          ]
+        }
+      ],
+      "links": [
+        "app.shell",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "ui.theme",
+      "title": "Tema ember glassy: kaca hangat & aksen terracotta",
+      "kind": "ui",
+      "phase": 0,
+      "status": "done",
+      "summary": "Tema kaca hangat (glassy) dengan aksen ember. Latar netral hangat #161311 + tiga pendar (ember 0.16 kiri atas, ember pekat 0.14 bawah, sejuk tipis 0.05) dan butir halus. Permukaan transparan + backdrop-blur: glass 18px, glass-panel 22px, glass-strong 30px, card 12px, field 8px — semuanya bergaris tepi ember tipis (rgba(232,160,119,.10-.16)) sehingga bidang terasa kaca, bukan kotak matte. Aksen utama `accent` = terracotta 50-950; isi tombol #b0522a padat tanpa gradasi (teks putih 5.8:1), hover #c9632f. Sebaran ember: nama sapaan, garis rambut atas kartu statistik, garis rambut sidebar, angka jumlah task, jalur progres, kartu task, titik sirkuit, dan label .ds-label yang dihangatkan (#b2927e). `plum` = status Proses; `sea` = tautan eksternal; merah = urgent; amber = menunggu; emerald = selesai. Utilitas: btn-primary/ghost/danger, card, field, sheen, lift, spot, hairline, nums, ds-label. Tipografi: DM Sans, Host Grotesk, Fragment Mono (woff2 lokal). Token di tailwind.config.cjs, utilitas di src/renderer/src/index.css. RAM idle 240 MB (gerbang <300).",
+      "tags": [
+        "tema",
+        "theme",
+        "glassy",
+        "kaca",
+        "blur",
+        "glass",
+        "ember",
+        "terracotta",
+        "hangat",
+        "oren",
+        "warna",
+        "font",
+        "tailwind",
+        "css",
+        "frameless",
+        "pill"
+      ],
+      "files": [
+        {
+          "path": "tailwind.config.cjs",
+          "symbols": []
+        },
+        {
+          "path": "src/renderer/src/index.css",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "build",
+        "web.feature",
+        "settings.ui"
+      ]
+    },
+    {
+      "id": "main.browser",
+      "title": "Browser luar (Chrome/Edge) untuk login yang diblokir",
+      "kind": "system",
+      "phase": 3,
+      "status": "done",
+      "summary": "Dua jalur membuka layanan yang menolak login di browser tertanam (terutama Google). (1) Ringan: openInDefaultBrowser -> shell.openExternal, satu tab di browser bawaan yang biasanya sudah hidup dan sudah login. (2) Terpisah: openInBrowser mencari Chrome/Edge (Pengaturan paths.browser lalu lokasi umum Windows) dan menjalankan --app=<url> dengan --user-data-dir=<userData>/browser-profile/<partition>, sehingga sesi terpisah dan passkey/Windows Hello berfungsi, dengan biaya satu pohon proses browser baru. Fallback ke shell.openExternal bila browser tidak ditemukan.",
+      "tags": [
+        "browser",
+        "chrome",
+        "edge",
+        "google",
+        "login",
+        "oauth",
+        "external",
+        "app-mode",
+        "passkey",
+        "sesi",
+        "default-browser",
+        "firefox",
+        "ringan"
+      ],
+      "files": [
+        {
+          "path": "src/main/browser.ts",
+          "symbols": [
+            "findBrowserPath",
+            "browserName",
+            "browserAppArgs",
+            "openInBrowser",
+            "openInDefaultBrowser"
+          ]
+        }
+      ],
+      "links": [
+        "web.feature",
+        "data.profiles",
+        "settings.ui",
+        "launcher",
+        "ipc",
+        "paths.settings"
+      ]
+    },
+    {
+      "id": "preload.guest",
+      "title": "Preload tamu: matikan passkey/WebAuthn",
+      "kind": "system",
+      "phase": 3,
+      "status": "done",
+      "summary": "Preload untuk view web pihak ketiga. Menjalankan skrip di world utama halaman lewat webFrame: menghapus PublicKeyCredential dan membuat navigator.credentials.create/get menolak (NotSupportedError). Hasilnya situs melihat WebAuthn tidak didukung sehingga dialog Windows Security \"Sign in with a passkey / masukkan security key\" tidak muncul; passkey tetap bisa dipakai di jendela Chrome asli.",
+      "tags": [
+        "preload",
+        "guest",
+        "webauthn",
+        "passkey",
+        "windows-security",
+        "sandbox",
+        "webview",
+        "keamanan"
+      ],
+      "files": [
+        {
+          "path": "src/preload/guest.ts",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "web.feature",
+        "views.manager",
+        "sec.guard"
+      ]
+    },
+    {
+      "id": "components.title.bar",
+      "title": "Title bar kaca jendela frameless",
+      "kind": "ui",
+      "phase": 0,
+      "status": "done",
+      "summary": "Title bar kaca jendela frameless: merek, tombol cari (Ctrl+K), tombol tangkap cepat clipboard, lonceng pengingat, tombol Task Baru, dan tombol jendela minimize/maximize/close. Semua tombol no-drag agar tetap bisa diklik.",
+      "tags": [
+        "titlebar",
+        "title bar",
+        "kaca",
+        "frameless",
+        "drag",
+        "window",
+        "capture",
+        "pengingat",
+        "bell"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/components/TitleBar.tsx",
+          "symbols": [
+            "TitleBar"
+          ]
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "ui.theme",
+        "inbox.feature",
+        "reminders.system",
+        "shortcuts.global"
+      ]
+    },
+    {
+      "id": "inbox.feature",
+      "title": "Inbox terpadu & tangkap cepat",
+      "kind": "feature",
+      "phase": 4,
+      "status": "done",
+      "summary": "Inbox tiga kolom: filter status/sumber/badge layanan, daftar item, detail. Item dibuat dari clipboard lewat pintasan global Ctrl+Shift+N (dibaca di main process), dari badge judul layanan web, atau tempelan manual. Nomor tiket (#1234) dan tautan pertama dideteksi otomatis. Aksi: jadikan task (judul dari baris pertama), tautkan ke task, tunda (disimpan di inbox_items.snooze_until), abaikan, kembalikan. Item lama memunculkan banner; task menyimpan source_inbox_item_id dan item tertaut balik.",
+      "tags": [
+        "inbox",
+        "tangkapan",
+        "capture",
+        "clipboard",
+        "badge",
+        "tiket",
+        "tautan",
+        "jadikan task",
+        "tunda",
+        "abaikan",
+        "manual"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/inbox/InboxView.tsx",
+          "symbols": [
+            "InboxView"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/inbox.ts",
+          "symbols": [
+            "useInbox"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/Dialogs.tsx",
+          "symbols": [
+            "CaptureDialog",
+            "InboxTaskDialog",
+            "LinkInboxDialog",
+            "Dialogs"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "listInbox",
+            "getInbox",
+            "addInboxItem",
+            "makeInboxTask",
+            "linkInboxTask",
+            "snoozeInbox",
+            "ignoreInbox",
+            "restoreInbox"
+          ]
+        },
+        {
+          "path": "src/shared/data.ts",
+          "symbols": [
+            "inboxInput",
+            "inboxTaskInput",
+            "InboxRow",
+            "parseTicketRef",
+            "parseFirstUrl",
+            "inboxTitle"
+          ]
+        },
+        {
+          "path": "migrations/004_inbox_reminders.sql",
+          "symbols": []
+        },
+        {
+          "path": "src/renderer/src/lib/actions.ts",
+          "symbols": [
+            "openCapture"
+          ]
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "repo",
+        "ipc",
+        "reminders.system",
+        "tasks.feature",
+        "web.feature",
+        "data.inbox",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "reminders.system",
+      "title": "Penjadwal pengingat & notifikasi",
+      "kind": "system",
+      "phase": 4,
+      "status": "done",
+      "summary": "Pengingat dihitung ulang dari data: lewat tenggat, menunggu, pending lama, inbox lama (digabung), dan Jumat setelah jam pengingat untuk timesheet. Sejak Fase 5 aturan Jumat memakai jumlah entri yang belum ditandai tersalin (synced_to_sunfish) dan weekBounds; kalau semua sudah ditandai, pengingat tidak muncul. Notifikasi Windows + toast + lonceng, Tunda sampai besok, Bisukan per task.",
+      "tags": [
+        "pengingat",
+        "reminder",
+        "notifikasi",
+        "lonceng",
+        "bell",
+        "ambang",
+        "jumat",
+        "timesheet",
+        "synced",
+        "mute"
+      ],
+      "files": [
+        {
+          "path": "src/main/reminders.ts",
+          "symbols": [
+            "ReminderThresholds",
+            "CollectInput",
+            "isoWeekKey",
+            "collectReminders",
+            "currentReminders",
+            "refreshReminders",
+            "dismissReminder",
+            "startReminderScheduler",
+            "stopReminderScheduler",
+            "weekBounds"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/reminders.ts",
+          "symbols": [
+            "useReminders"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/ReminderBell.tsx",
+          "symbols": [
+            "ReminderBell"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "listTasksForReminders",
+            "listInboxForReminders",
+            "muteTaskReminder"
+          ]
+        },
+        {
+          "path": "src/shared/settings.ts",
+          "symbols": [
+            "settingsSchemas",
+            "DEFAULT_SETTINGS"
+          ]
+        },
+        {
+          "path": "src/shared/settings-ui.ts",
+          "symbols": [
+            "SETTINGS_SECTIONS"
+          ]
+        }
+      ],
+      "links": [
+        "app.shell",
+        "ipc",
+        "settings.engine",
+        "settings.ui",
+        "inbox.feature",
+        "taskdetail.feature",
+        "timesheet.feature",
+        "tests.selftest",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "shortcuts.global",
+      "title": "Pintasan global tangkap cepat",
+      "kind": "system",
+      "phase": 4,
+      "status": "done",
+      "summary": "globalShortcut mendaftarkan dua pintasan dari Pengaturan → Pintasan: capture clipboard (default CommandOrControl+Shift+N) dan Screenshot Editor (default CommandOrControl+Shift+S). Saat ditekan, jendela difokuskan lalu event dikirim; screenshot membuka ToolWindow dengan id screenshot-editor. Gagal daftar dilaporkan, dan Ctrl+Shift+N tetap punya fallback di renderer.",
+      "tags": [
+        "pintasan",
+        "shortcut",
+        "global",
+        "accelerator",
+        "clipboard",
+        "capture",
+        "screenshot",
+        "konflik"
+      ],
+      "files": [
+        {
+          "path": "src/main/shortcuts.ts",
+          "symbols": [
+            "shortcutStatus",
+            "registerShortcuts",
+            "unregisterShortcuts"
+          ]
+        },
+        {
+          "path": "src/shared/api.ts",
+          "symbols": [
+            "ShortcutStatus",
+            "IPC"
+          ]
+        },
+        {
+          "path": "src/renderer/src/App.tsx",
+          "symbols": [
+            "App"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/settings/SettingsPage.tsx",
+          "symbols": [
+            "SettingsPage"
+          ]
+        }
+      ],
+      "links": [
+        "app.shell",
+        "ipc",
+        "settings.engine",
+        "settings.ui",
+        "inbox.feature"
+      ]
+    },
+    {
+      "id": "data.inbox",
+      "title": "Tabel inbox_items & penanda pengingat",
+      "kind": "data",
+      "phase": 4,
+      "status": "done",
+      "summary": "inbox_items (dari 001) dipakai sejak Fase 4; migrasi 004 menambah ticket_ref dan url, plus tasks.remind_muted. Status: baru|ditunda|dijadikan_task|diabaikan; snooze_until menyimpan tunda item; linked_task_id menunjuk task hasil/tautan; tasks.source_inbox_item_id menyimpan asal item.",
+      "tags": [
+        "inbox_items",
+        "tabel",
+        "data",
+        "migrasi",
+        "004",
+        "ticket_ref",
+        "snooze",
+        "remind_muted"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/004_inbox_reminders.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "db.engine",
+        "db.schema",
+        "repo",
+        "inbox.feature",
+        "reminders.system",
+        "data.planned"
+      ]
+    },
+    {
+      "id": "timesheet.feature",
+      "title": "Timesheet mingguan, draft Sunfish & penutup hari",
+      "kind": "feature",
+      "phase": 5,
+      "status": "done",
+      "summary": "Grid mingguan Senin-Jumat (hari kerja dari Pengaturan → Waktu Kerja) berisi jam per task per hari, total harian/mingguan vs target, peringatan hari kosong. Entri waktu bisa ditambah/diedit manual (mulai, selesai, catatan). Panel draft Sunfish siap salin, tombol Buka Sunfish, dan Tandai tersalin per minggu (time_entries.synced_to_sunfish) yang dipakai pengingat Jumat. Penutup hari menampilkan jam hari ini, task terbuka, aksi geser ke besok / tandai menunggu, dan pintasan ke timesheet.",
+      "tags": [
+        "timesheet",
+        "jam",
+        "mingguan",
+        "draft",
+        "sunfish",
+        "sinkron",
+        "tersalin",
+        "penutup hari",
+        "end of day",
+        "entri",
+        "edit",
+        "hari kosong"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/timesheet/TimesheetView.tsx",
+          "symbols": [
+            "TimesheetView"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tasks/EndOfDayDialog.tsx",
+          "symbols": [
+            "EndOfDayDialog"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "listTimeEntries",
+            "updateTimeEntry",
+            "addTimeEntry",
+            "markEntriesSynced",
+            "unsyncedEntriesCount",
+            "dayStats"
+          ]
+        },
+        {
+          "path": "src/main/reminders.ts",
+          "symbols": [
+            "weekBounds"
+          ]
+        },
+        {
+          "path": "src/shared/data.ts",
+          "symbols": [
+            "TimeEntryWithTask",
+            "TimeEntryRow"
+          ]
+        },
+        {
+          "path": "docs/fase-5.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "repo",
+        "data.time",
+        "timer.feature",
+        "reminders.system",
+        "settings.engine",
+        "ui.shell",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "templates.feature",
+      "title": "Template task & task berulang",
+      "kind": "feature",
+      "phase": 5,
+      "status": "done",
+      "summary": "Template (nama, workspace, prioritas, subtask, resource, aturan berulang) disimpan di task_templates; bisa dibuat dari scratch atau dari detail task (Simpan sebagai template). Saat task berulang ditandai selesai, occurrence berikutnya dibuat otomatis dengan tenggat dari aturan (mingguan dengan hari pilihan / bulanan), subtask + resource disalin, dan recurrence_parent_id mencegah duplikat saat status bolak-balik.",
+      "tags": [
+        "template",
+        "berulang",
+        "recurrence",
+        "rutin",
+        "mingguan",
+        "bulanan",
+        "occurrence",
+        "subtask",
+        "resource"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/templates/TemplatesDialog.tsx",
+          "symbols": [
+            "TemplatesDialog",
+            "SaveTemplateDialog"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "listTemplates",
+            "createTemplate",
+            "updateTemplate",
+            "removeTemplate",
+            "createTaskFromTemplate"
+          ]
+        },
+        {
+          "path": "src/shared/data.ts",
+          "symbols": [
+            "templateInput",
+            "TemplateRow",
+            "recurrenceRuleSchema",
+            "parseRecurrence",
+            "describeRecurrence",
+            "nextOccurrence"
+          ]
+        },
+        {
+          "path": "migrations/005_timesheet_tools.sql",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-5.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "tasks.feature",
+        "taskdetail.feature",
+        "repo",
+        "data.tasks",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "snippets.feature",
+      "title": "Snippet balasan & variabel",
+      "kind": "feature",
+      "phase": 5,
+      "status": "done",
+      "summary": "Pustaka snippet (judul + body) dengan variabel {nama}, {no_tiket}. Dipanggil lewat Ctrl+K, variabel diisi di dialog, lalu teks disalin ke clipboard lewat main process. Dikelola dari dialog Ctrl+K → Kelola snippet (bukan menu Pengaturan baru).",
+      "tags": [
+        "snippet",
+        "balasan",
+        "template teks",
+        "variabel",
+        "clipboard",
+        "salin",
+        "ctrl+k"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/snippets/SnippetsDialog.tsx",
+          "symbols": [
+            "SnippetsDialog",
+            "FillSnippetDialog"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/CommandPalette.tsx",
+          "symbols": [
+            "CommandPalette"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "listSnippets",
+            "createSnippet",
+            "updateSnippet",
+            "removeSnippet"
+          ]
+        },
+        {
+          "path": "src/shared/data.ts",
+          "symbols": [
+            "snippetInput",
+            "SnippetRow",
+            "snippetVariables",
+            "fillSnippet"
+          ]
+        },
+        {
+          "path": "docs/fase-5.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "palette.feature",
+        "ipc",
+        "ui.shell",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "idle.timer",
+      "title": "Timer otomatis & deteksi idle",
+      "kind": "system",
+      "phase": 5,
+      "status": "done",
+      "summary": "Timer mulai sendiri saat task berstatus baru/proses dibuka bila belum ada timer lain (Pengaturan → Waktu Kerja → autoStartTimer). Pengamat idle memeriksa powerMonitor tiap 30 dtk; setelah work.idleMinutes tanpa aktivitas, timer dihentikan dengan durasi dipotong sampai detik terakhir aktif, entri ditandai source auto, dan renderer menerima event untuk toast + refresh. Ambang idle dan auto-start tidak hardcode.",
+      "tags": [
+        "timer",
+        "idle",
+        "otomatis",
+        "auto",
+        "powerMonitor",
+        "auto-start",
+        "potong durasi",
+        "waktu"
+      ],
+      "files": [
+        {
+          "path": "src/main/idle.ts",
+          "symbols": [
+            "startIdleWatcher",
+            "stopIdleWatcher"
+          ]
+        },
+        {
+          "path": "src/main/db/repo.ts",
+          "symbols": [
+            "stopTimerIdle",
+            "startTimer"
+          ]
+        },
+        {
+          "path": "src/shared/settings.ts",
+          "symbols": [
+            "settingsSchemas",
+            "DEFAULT_SETTINGS"
+          ]
+        },
+        {
+          "path": "src/renderer/src/App.tsx",
+          "symbols": [
+            "App"
+          ]
+        },
+        {
+          "path": "docs/fase-5.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "timer.feature",
+        "app.shell",
+        "settings.engine",
+        "timesheet.feature",
+        "tests.selftest"
+      ]
+    },
+    {
+      "id": "data.tools",
+      "title": "Tabel tools & layout",
+      "kind": "data",
+      "phase": 6,
+      "status": "done",
+      "summary": "Tabel tools menyimpan manifest_json, install_path, enabled, dock_slot untuk tool yang diimpor (tool bawaan tidak disimpan di DB). Tabel layout menyimpan slot_id (right/bottom), tool_id, dan size; resource hasil tool memakai task_resources.tool_id.",
+      "tags": [
+        "tools",
+        "layout",
+        "tabel",
+        "manifest",
+        "dock",
+        "slot",
+        "tool_id"
+      ],
+      "files": [
+        {
+          "path": "migrations/001_init.sql",
+          "symbols": []
+        },
+        {
+          "path": "migrations/005_timesheet_tools.sql",
+          "symbols": []
+        },
+        {
+          "path": "src/main/db/tools.ts",
+          "symbols": [
+            "listStoredTools",
+            "getStoredTool",
+            "upsertTool",
+            "removeToolRow",
+            "setToolEnabled",
+            "listLayout",
+            "setLayoutSlot"
+          ]
+        }
+      ],
+      "links": [
+        "db.schema",
+        "db.engine",
+        "tools.system",
+        "dock.feature",
+        "data.planned"
+      ]
+    },
+    {
+      "id": "tools.system",
+      "title": "Tool Manager: manifest, registry, runner, UI",
+      "kind": "system",
+      "phase": 6,
+      "status": "done",
+      "summary": "Kontrak tool.json (zod) untuk script/web/launcher/builtin; registry menyalin tool ke %APPDATA%/tools/<id> dan mendaftarkannya di tabel tools tanpa restart. Runner menjalankan script dari folder tools sebagai proses anak (python/node/bat/powershell), menulis input form ke .alip-input.json, menangkap log, membatasi 10 menit, bisa dibatalkan, dan mengembalikan output file. Halaman Tool Saya mengimpor file/folder dengan peringatan keamanan, mengaktifkan/menghapus, dan membuka tool; auto-form dibuat dari inputs; sidebar TOOLS menampilkan tool aktif. Python portable lewat npm run setup:python.",
+      "tags": [
+        "tools",
+        "tool manager",
+        "plugin",
+        "manifest",
+        "tool.json",
+        "registry",
+        "runner",
+        "proses anak",
+        "auto-form",
+        "impor",
+        "script",
+        "python",
+        "katalog"
+      ],
+      "files": [
+        {
+          "path": "src/shared/tools.ts",
+          "symbols": [
+            "toolManifestSchema",
+            "ToolManifest",
+            "ToolRow",
+            "BUILTIN_TOOLS",
+            "SPREADSHEET_MODES",
+            "TOOL_TYPES",
+            "ToolType",
+            "TOOL_UIS",
+            "ToolUi",
+            "TOOL_RUNTIMES",
+            "ToolRuntime",
+            "TOOL_INPUT_KINDS",
+            "ToolInputKind",
+            "toolInputSchema",
+            "ToolInputDef",
+            "ToolRunInputs",
+            "ToolRunResult",
+            "ToolInstallInput",
+            "LayoutSlotId",
+            "LayoutRow",
+            "SpreadsheetMode",
+            "SPREADSHEET_LABEL",
+            "ImageResizeInput",
+            "BuiltinFileEntry",
+            "parseManifest"
+          ]
+        },
+        {
+          "path": "src/main/tools/registry.ts",
+          "symbols": [
+            "toolsRoot",
+            "safeToolId",
+            "inferManifest",
+            "installTool",
+            "listTools",
+            "getTool",
+            "removeTool",
+            "setToolEnabled"
+          ]
+        },
+        {
+          "path": "src/main/tools/runner.ts",
+          "symbols": [
+            "runTool",
+            "cancelTool",
+            "outputTitle"
+          ]
+        },
+        {
+          "path": "src/main/db/tools.ts",
+          "symbols": [
+            "listStoredTools",
+            "getStoredTool",
+            "upsertTool",
+            "removeToolRow",
+            "setToolEnabled"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/tools.ts",
+          "symbols": [
+            "useTools"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/ToolForm.tsx",
+          "symbols": [
+            "ToolForm"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/ToolPanel.tsx",
+          "symbols": [
+            "ToolPanel"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/ToolWindow.tsx",
+          "symbols": [
+            "ToolWindow"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/QuickNote.tsx",
+          "symbols": [
+            "QuickNote"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/settings/ToolsEditor.tsx",
+          "symbols": [
+            "ToolsEditor"
+          ]
+        },
+        {
+          "path": "src/renderer/src/components/Sidebar.tsx",
+          "symbols": [
+            "Sidebar"
+          ]
+        },
+        {
+          "path": "migrations/005_timesheet_tools.sql",
+          "symbols": []
+        },
+        {
+          "path": "scripts/setup-python.mjs",
+          "symbols": []
+        },
+        {
+          "path": "docs/fase-6.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "app.shell",
+        "ipc",
+        "settings.engine",
+        "settings.ui",
+        "builtin.tools",
+        "dock.feature",
+        "spreadsheet.settings",
+        "data.planned",
+        "tools.quick.note",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "builtin.tools",
+      "title": "Tool bawaan (GridCraft, Image Resizer, Screenshot, File Manager, Catatan)",
+      "kind": "feature",
+      "phase": 6,
+      "status": "partial",
+      "summary": "Lima tool bawaan memakai sistem tool yang sama: GridCraft (launcher .exe dengan .xlsx), Image Resizer (kanvas renderer; banyak gambar, preset/kustom, jaga rasio, PNG/JPG/WebP, lampirkan hasil ke task), Screenshot Editor (gambar clipboard, panah/kotak/lingkaran/teks/blur, salin PNG ke clipboard, pintasan global), File Manager (pohon sederhana, buka, ganti nama, hapus ke Recycle Bin), dan Catatan (scratchpad textarea yang tersimpan otomatis di tabel quick_notes, cocok di-dock ke panel bawah). Background Remover belum dibuat karena butuh model + runtime Python tambahan.",
+      "tags": [
+        "tool bawaan",
+        "builtin",
+        "gridcraft",
+        "image resizer",
+        "screenshot editor",
+        "file manager",
+        "catatan",
+        "quick note",
+        "scratchpad",
+        "background remover",
+        "anotasi",
+        "resize",
+        "gambar"
+      ],
+      "files": [
+        {
+          "path": "src/main/tools/builtin.ts",
+          "symbols": [
+            "readImages",
+            "writeFiles",
+            "clipboardImageDataUrl",
+            "copyImageDataUrl",
+            "listDirectory",
+            "renameEntry",
+            "trashEntry",
+            "openEntry"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/ImageResizer.tsx",
+          "symbols": [
+            "ImageResizer"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/ScreenshotEditor.tsx",
+          "symbols": [
+            "ScreenshotEditor"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/FileManager.tsx",
+          "symbols": [
+            "FileManager"
+          ]
+        },
+        {
+          "path": "src/renderer/src/features/tools/QuickNote.tsx",
+          "symbols": [
+            "QuickNote"
+          ]
+        },
+        {
+          "path": "src/shared/tools.ts",
+          "symbols": [
+            "BUILTIN_TOOLS",
+            "BuiltinFileEntry"
+          ]
+        },
+        {
+          "path": "docs/fase-6.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "tools.system",
+        "dock.feature",
+        "spreadsheet.settings",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "dock.feature",
+      "title": "Dock tool (panel kanan & bawah)",
+      "kind": "feature",
+      "phase": 6,
+      "status": "done",
+      "summary": "Dua slot dock: panel kanan dan panel bawah. Tool ditarik dari sidebar (HTML5 drag) atau dikirim lewat tombol Panel kanan/bawah di jendela tool. Slot menyimpan tool_id + ukuran di tabel layout dan ukurannya bisa digeser. Mengosongkan slot melepas view tool dan membatalkan proses script yang berjalan; slot kosong tetap menjadi target tarik.",
+      "tags": [
+        "dock",
+        "slot",
+        "panel kanan",
+        "panel bawah",
+        "layout",
+        "drag",
+        "tarik",
+        "dockable",
+        "unload"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/components/Dock.tsx",
+          "symbols": [
+            "Dock"
+          ]
+        },
+        {
+          "path": "src/main/db/tools.ts",
+          "symbols": [
+            "listLayout",
+            "setLayoutSlot"
+          ]
+        },
+        {
+          "path": "src/renderer/src/store/tools.ts",
+          "symbols": [
+            "useTools"
+          ]
+        },
+        {
+          "path": "src/renderer/src/App.tsx",
+          "symbols": [
+            "App"
+          ]
+        },
+        {
+          "path": "docs/fase-6.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "tools.system",
+        "builtin.tools",
+        "ui.shell",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "spreadsheet.settings",
+      "title": "Pengaturan Spreadsheet (GridCraft/Excel/web)",
+      "kind": "feature",
+      "phase": 6,
+      "status": "done",
+      "summary": "Seksi Pengaturan Spreadsheet memilih GridCraft (default), launcher Excel, atau profil web. File .xlsx/.xls/.csv dari resource task dibuka lewat pilihan itu (openSpreadsheet); mode web membuka profil web yang dipilih, mode launcher memakai path di Aplikasi & Path.",
+      "tags": [
+        "spreadsheet",
+        "gridcraft",
+        "excel",
+        "xlsx",
+        "google sheets",
+        "excel online",
+        "launcher",
+        "pengaturan"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/settings/SpreadsheetEditor.tsx",
+          "symbols": [
+            "SpreadsheetEditor"
+          ]
+        },
+        {
+          "path": "src/shared/settings.ts",
+          "symbols": [
+            "settingsSchemas",
+            "DEFAULT_SETTINGS"
+          ]
+        },
+        {
+          "path": "src/main/launcher/index.ts",
+          "symbols": [
+            "openSpreadsheet"
+          ]
+        },
+        {
+          "path": "docs/fase-6.md",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "launcher",
+        "settings.ui",
+        "settings.engine",
+        "tools.system",
+        "resources.feature",
+        "docs.phases"
+      ]
+    },
+    {
+      "id": "components.circuit",
+      "title": "Hiasan sirkuit untuk ruang kosong",
+      "kind": "ui",
+      "phase": 0,
+      "status": "done",
+      "summary": "CircuitField: SVG dekoratif (garis ortogonal + simpul + 1-3 titik yang berjalan lewat animateMotion) yang HANYA dipasang di ruang kosong — area kosong dashboard, panel detail yang belum dipilih, dan inbox kosong. Kartu berisi konten tidak memakai garis berjalan, dan tidak ada pola sirkuit global di latar. Warna garis netral samar (white 0.07) dengan simpul dan titik ember (#e8a077/#c9632f) supaya terasa hangat, bukan ramai.",
+      "tags": [
+        "ui",
+        "sirkuit",
+        "circuit",
+        "dekoratif",
+        "ruang-kosong",
+        "animasi",
+        "smil",
+        "svg"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/components/Circuit.tsx",
+          "symbols": [
+            "CircuitField"
+          ]
+        }
+      ],
+      "links": [
+        "ui.shell",
+        "ui.theme",
+        "today.feature",
+        "inbox.feature"
+      ]
+    },
+    {
+      "id": "lib.spotlight",
+      "title": "Hook sorot kursor",
+      "kind": "system",
+      "phase": 0,
+      "status": "done",
+      "summary": "useSpotlight: menulis posisi kursor ke CSS variable --mx/--my pada elemen, dipakai utilitas .spot untuk memancarkan sorot merah lembut yang mengikuti kursor (dipakai kartu statistik di Dashboard).",
+      "tags": [
+        "hook",
+        "cursor",
+        "sorot",
+        "spotlight",
+        "css-variable",
+        "ui"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/lib/spotlight.ts",
+          "symbols": [
+            "useSpotlight"
+          ]
+        }
+      ],
+      "links": [
+        "ui.theme",
+        "today.feature"
+      ]
+    },
+    {
+      "id": "migrations.007_quick_note",
+      "title": "007 — tabel quick_notes (catatan cepat)",
+      "kind": "data",
+      "phase": 6,
+      "status": "done",
+      "summary": "Migrasi 007 menambah tabel quick_notes (id, content, updated_at) untuk tool bawaan Catatan: satu baris id 'utama' menyimpan textarea yang tersimpan otomatis di app.",
+      "tags": [
+        "catatan",
+        "quick note",
+        "scratchpad",
+        "textarea",
+        "migrasi",
+        "tabel"
+      ],
+      "files": [
+        {
+          "path": "migrations/007_quick_note.sql",
+          "symbols": []
+        }
+      ],
+      "links": [
+        "db.schema",
+        "tools.quick.note"
+      ]
+    },
+    {
+      "id": "tools.quick.note",
+      "title": "Catatan (quick note)",
+      "kind": "feature",
+      "phase": 6,
+      "status": "done",
+      "summary": "Tool bawaan Catatan: satu textarea besar yang dimuat dari quickNote.get lalu disimpan otomatis 700 ms setelah mengetik (flush saat blur/tutup panel), plus status tersimpan, salin semua, dan kosongkan. Dipakai di jendela tool maupun dock panel bawah.",
+      "tags": [
+        "catatan",
+        "quick note",
+        "scratchpad",
+        "textarea",
+        "autosave",
+        "dock"
+      ],
+      "files": [
+        {
+          "path": "src/renderer/src/features/tools/QuickNote.tsx",
+          "symbols": [
+            "QuickNote"
+          ]
+        }
+      ],
+      "links": [
+        "builtin.tools",
+        "tools.system",
+        "ipc",
+        "dock.feature",
+        "migrations.007_quick_note"
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow.timer",
+      "title": "Mulai, jalankan beberapa timer, dan jeda",
+      "summary": "Dari klik tombol sampai sesi tercatat: beberapa task boleh punya timer berjalan; Jeda menghentikan timer task itu lewat dialog resume_note, Jeda semua menghentikan semuanya.",
+      "tags": [
+        "timer",
+        "waktu",
+        "mulai",
+        "jeda",
+        "pindah",
+        "resume",
+        "stop",
+        "sesi",
+        "multi"
+      ],
+      "steps": [
+        {
+          "node": "timer.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "toggleTimer",
+          "what": "Klik timer di kartu/detail memanggil toggleTimer(taskId)."
+        },
+        {
+          "node": "timer.feature",
+          "file": "src/renderer/src/store/data.ts",
+          "symbol": "startTimer",
+          "what": "Store data memanggil window.alip.time.start lalu refresh() seluruh data."
+        },
+        {
+          "node": "ipc",
+          "file": "src/preload/index.ts",
+          "symbol": null,
+          "what": "Channel time:start diteruskan ke main process lewat API sempit window.alip."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "startTimer",
+          "what": "Pastikan task ini belum punya entri terbuka, set status proses, buat baris time_entries baru; timer task lain tetap jalan."
+        },
+        {
+          "node": "timer.feature",
+          "file": "src/renderer/src/components/Sidebar.tsx",
+          "symbol": "TimerWidget",
+          "what": "Widget kiri bawah mendaftar semua timer berjalan (berdetak dari started_at + useNow) dengan tombol jeda per task."
+        },
+        {
+          "node": "timer.feature",
+          "file": "src/renderer/src/components/Dialogs.tsx",
+          "symbol": "StopPrompt",
+          "what": "Dialog \"Terakhir sampai mana?\" untuk task yang dijedai: catatan disimpan lalu stopTimer(taskId, note)."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "stopTimer",
+          "what": "Tulis ended_at + duration_seconds untuk entri task itu + resume_note, UI lalu di-refresh."
+        },
+        {
+          "node": "app.shell",
+          "file": "src/main/index.ts",
+          "symbol": null,
+          "what": "Saat app ditutup, sesi yang masih terbuka ditutup sebelum DB ditutup."
+        },
+        {
+          "node": "timer.feature",
+          "file": "src/renderer/src/components/Sidebar.tsx",
+          "symbol": "TimerWidget",
+          "what": "Tombol \"Jeda semua\" memanggil time.stopAll: semua entri terbuka ditutup tanpa mengubah resume note."
+        }
+      ]
+    },
+    {
+      "id": "flow.openResource",
+      "title": "Dari klik resource ke aplikasi atau panel web",
+      "summary": "Satu pintu untuk folder/file/aplikasi/link: validasi keamanan di main, web diarahkan ke view profil, native diluncurkan.",
+      "tags": [
+        "resource",
+        "buka",
+        "folder",
+        "file",
+        "aplikasi",
+        "link",
+        "web",
+        "buka semua"
+      ],
+      "steps": [
+        {
+          "node": "taskdetail.feature",
+          "file": "src/renderer/src/features/tasks/TaskDetail.tsx",
+          "symbol": "TaskDetail",
+          "what": "Kartu resource diklik, atau tombol Buka semua di header task."
+        },
+        {
+          "node": "resources.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openResource",
+          "what": "Renderer memanggil window.alip.resources.open(id)."
+        },
+        {
+          "node": "ipc",
+          "file": "src/preload/index.ts",
+          "symbol": null,
+          "what": "Channel resources:open menyeberang ke main process."
+        },
+        {
+          "node": "ipc",
+          "file": "src/main/ipc/index.ts",
+          "symbol": "registerIpc",
+          "what": "Handler IPC meneruskan ke launcher.openResource."
+        },
+        {
+          "node": "launcher",
+          "file": "src/main/launcher/index.ts",
+          "symbol": "openResource",
+          "what": "Validasi target: file/folder harus ada, ekstensi program diblokir, web mengembalikan {web}."
+        },
+        {
+          "node": "resources.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openWebPanel",
+          "what": "Resource web: URL tujuan dikirim ke view profil lalu panel dibuka (maks 2)."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/main/views/manager.ts",
+          "symbol": "ViewManager",
+          "what": "ViewManager menampilkan view profil; resource native sudah diluncurkan lewat openWithApp."
+        }
+      ]
+    },
+    {
+      "id": "flow.viewLifecycle",
+      "title": "Siklus layanan web: buka, hibernasi, pulih",
+      "summary": "Satu view per profil dengan sesi login sendiri; hibernasi menghancurkan view, membuka lagi memulihkan URL terakhir.",
+      "tags": [
+        "layanan",
+        "webview",
+        "hibernasi",
+        "panel",
+        "split",
+        "login",
+        "profil",
+        "mode hemat"
+      ],
+      "steps": [
+        {
+          "node": "ui.shell",
+          "file": "src/renderer/src/components/Sidebar.tsx",
+          "symbol": "Sidebar",
+          "what": "Klik layanan di sidebar (atau palette) memanggil openProfile(profileId)."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openProfile",
+          "what": "Profil native-only → buka app; tanpa URL → pesan ke Pengaturan; selain itu openWebPanel."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openWebPanel",
+          "what": "views.open(profileId, url) mengarahkan view ke URL tujuan sebelum panel tampil."
+        },
+        {
+          "node": "views.manager",
+          "file": "src/main/views/manager.ts",
+          "symbol": "ViewManager",
+          "what": "Buat WebContentsView dengan partition persist:<id>; state active/warm; batas maxLiveViews."
+        },
+        {
+          "node": "app.shell",
+          "file": "src/main/index.ts",
+          "symbol": null,
+          "what": "Interval 30 dtk memanggil tick() → hibernasi view tak terlihat setelah hibernateMinutes."
+        },
+        {
+          "node": "performance.settings",
+          "file": "src/renderer/src/features/settings/ViewsMonitor.tsx",
+          "symbol": "ViewsMonitor",
+          "what": "Mode hemat / hibernateAll mematikan view tak terlihat kecuali yang jaga hidup."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/features/web/WebView.tsx",
+          "symbol": "WebView",
+          "what": "Klik layanan hibernasi: view dibuat ulang di URL terakhir, login tetap karena partition."
+        }
+      ]
+    },
+    {
+      "id": "flow.settingsSave",
+      "title": "Simpan Pengaturan dan validasinya",
+      "summary": "Nilai dari form divalidasi zod di main sebelum ditulis; UI langsung memakai hasil yang dikembalikan.",
+      "tags": [
+        "pengaturan",
+        "simpan",
+        "validasi",
+        "settings",
+        "form",
+        "zod"
+      ],
+      "steps": [
+        {
+          "node": "settings.ui",
+          "file": "src/renderer/src/features/settings/SettingsPage.tsx",
+          "symbol": "SettingsPage",
+          "what": "Tombol Simpan memanggil useSettings.save(section, draft)."
+        },
+        {
+          "node": "settings.ui",
+          "file": "src/renderer/src/store/settings.ts",
+          "symbol": "useSettings",
+          "what": "Store memanggil window.alip.settings.setSection lalu menyimpan hasilnya."
+        },
+        {
+          "node": "ipc",
+          "file": "src/preload/index.ts",
+          "symbol": null,
+          "what": "Channel IPC.settingsSet membawa seksi + nilai ke main process."
+        },
+        {
+          "node": "settings.engine",
+          "file": "src/main/settings/repository.ts",
+          "symbol": "setSection",
+          "what": "Validasi zod per seksi; gagal → {ok:false,error}; sukses → tulis tabel settings."
+        },
+        {
+          "node": "settings.ui",
+          "file": "src/renderer/src/store/settings.ts",
+          "symbol": "useSettings",
+          "what": "Nilai baru masuk store; target jam/ambang langsung dipakai layar lain."
+        },
+        {
+          "node": "data.settings",
+          "file": "migrations/001_init.sql",
+          "symbol": null,
+          "what": "Tersimpan sebagai satu baris JSON per seksi di tabel settings."
+        }
+      ]
+    },
+    {
+      "id": "flow.taskCreate",
+      "title": "Task baru dari dialog sampai tampil di detail",
+      "summary": "Alur cepat Ctrl+N: form → store → IPC → repo (activity_log) → panel detail.",
+      "tags": [
+        "task baru",
+        "buat task",
+        "tangkap cepat",
+        "ctrl+n",
+        "dialog",
+        "create"
+      ],
+      "steps": [
+        {
+          "node": "ui.shell",
+          "file": "src/renderer/src/App.tsx",
+          "symbol": "App",
+          "what": "Ctrl+N (atau tombol Task Baru) membuka dialog newTask lewat store ui."
+        },
+        {
+          "node": "tasks.feature",
+          "file": "src/renderer/src/components/Dialogs.tsx",
+          "symbol": "NewTaskDialog",
+          "what": "Form mengumpulkan judul, workspace, prioritas, dan tenggat."
+        },
+        {
+          "node": "tasks.feature",
+          "file": "src/renderer/src/store/data.ts",
+          "symbol": "createTask",
+          "what": "useData.createTask memanggil tasks.create lalu refresh() dan select(id)."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "createTask",
+          "what": "Insert task (status baru, last_touched_at) dan catat activity_log."
+        },
+        {
+          "node": "taskdetail.feature",
+          "file": "src/renderer/src/features/tasks/TaskDetail.tsx",
+          "symbol": "TaskDetail",
+          "what": "Task terpilih langsung tampil di panel detail."
+        }
+      ]
+    },
+    {
+      "id": "flow.webTabs",
+      "title": "Tab, split, dan pemulihan layout web",
+      "summary": "Dari klik layanan sampai layout tersimpan: layanan lama memulihkan split yang tersimpan, layanan baru tampil penuh tanpa mengubah split, dan split baru hanya dibentuk saat pengguna memilih pasangannya.",
+      "tags": [
+        "tab",
+        "split",
+        "layout",
+        "tersimpan",
+        "localstorage",
+        "browser",
+        "full",
+        "tampilpenuh"
+      ],
+      "steps": [
+        {
+          "node": "ui.shell",
+          "file": "src/renderer/src/components/Sidebar.tsx",
+          "symbol": "Sidebar",
+          "what": "Klik layanan di sidebar memanggil openProfile(profileId)."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openProfile",
+          "what": "Profil native-only → app; profil external → browser bawaan (satu tab); tanpa URL → pesan; selain itu openWebPanel lalu useUi.openWeb."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/store/ui.ts",
+          "symbol": "openWeb",
+          "what": "Profil yang sudah ada di layout diaktifkan (split dipulihkan). Layanan lain saat layout sudah terisi ditampilkan penuh (web.full) tanpa mengubah panel; layout kosong → masuk panel 0."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/store/ui.ts",
+          "symbol": "splitFull",
+          "what": "Pengguna memilih \"Bagi layar dengan…\" saat tampil penuh: panel dibentuk ulang [layanan penuh] | [pasangan], tab lama tetap tersimpan sebagai tab."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/store/ui.ts",
+          "symbol": "clearFull",
+          "what": "Tombol X pada chip tampilan penuh kembali ke layout split yang tersimpan."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/store/ui.ts",
+          "symbol": "saveWeb",
+          "what": "Panel, tab aktif, rasio, dan layanan yang tampil penuh (full) disimpan ke localStorage (tn.web.v1)."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/features/web/WebView.tsx",
+          "symbol": "WebView",
+          "what": "Renderer melaporkan bounds panel yang sedang tampil (satu panel saat penuh, dua saat split) lewat views.show; sidebar hanya menyorot yang terlihat."
+        },
+        {
+          "node": "views.manager",
+          "file": "src/main/views/manager.ts",
+          "symbol": "ViewManager",
+          "what": "View yang tampil jadi aktif; sisanya warm lalu hibernasi sesuai batas RAM."
+        },
+        {
+          "node": "web.feature",
+          "file": "src/renderer/src/store/ui.ts",
+          "symbol": "loadWeb",
+          "what": "Saat app dibuka lagi, loadWeb memulihkan panel/tab/rasio/full sebelum layanan dibuka."
+        }
+      ]
+    },
+    {
+      "id": "flow.capture",
+      "title": "Tangkap cepat dari clipboard",
+      "summary": "Pintasan global → dialog berisi clipboard → item inbox (atau langsung task), dengan deteksi #tiket dan tautan.",
+      "tags": [
+        "capture",
+        "clipboard",
+        "tangkapan",
+        "inbox",
+        "pintasan",
+        "shortcut",
+        "tiket"
+      ],
+      "steps": [
+        {
+          "node": "app.shell",
+          "file": "src/main/index.ts",
+          "symbol": "createWindow",
+          "what": "Saat jendela dibuat, pintasan global dan penjadwal pengingat dihidupkan."
+        },
+        {
+          "node": "shortcuts.global",
+          "file": "src/main/shortcuts.ts",
+          "symbol": "registerShortcuts",
+          "what": "Pintasan dari Pengaturan didaftarkan; gagal didaftar dilaporkan, bukan error fatal."
+        },
+        {
+          "node": "shortcuts.global",
+          "file": "src/main/shortcuts.ts",
+          "symbol": "registerShortcuts",
+          "what": "Saat ditekan: jendela dipulihkan/difokuskan lalu IPC capture-request dikirim."
+        },
+        {
+          "node": "ui.shell",
+          "file": "src/renderer/src/App.tsx",
+          "symbol": "App",
+          "what": "Berlangganan inbox.onCapture → openCapture(). Bila pintasan gagal, Ctrl+Shift+N ditangani di sini."
+        },
+        {
+          "node": "inbox.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openCapture",
+          "what": "Baca clipboard lewat main process lalu buka dialog tangkap."
+        },
+        {
+          "node": "inbox.feature",
+          "file": "src/renderer/src/components/Dialogs.tsx",
+          "symbol": "CaptureDialog",
+          "what": "Isi ditampilkan & disunting; sumber/pengirim dipilih; chip tiket/tautan muncul otomatis."
+        },
+        {
+          "node": "inbox.feature",
+          "file": "src/renderer/src/store/inbox.ts",
+          "symbol": "useInbox",
+          "what": "Simpan → inbox.add; pilih \"Simpan & jadikan task\" → inbox.makeTask."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "addInboxItem",
+          "what": "Simpan ke inbox_items dengan ticket_ref & url hasil deteksi."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "makeInboxTask",
+          "what": "Buat task dari baris pertama, isi deskripsi, tandai item, isi source_inbox_item_id."
+        }
+      ]
+    },
+    {
+      "id": "flow.reminder",
+      "title": "Dari ambang ke notifikasi pengingat",
+      "summary": "Penjadwal membaca ambang, menghitung pengingat, menotifikasi sekali per hari, lalu lonceng membuka task/inbox atau membisukan task.",
+      "tags": [
+        "pengingat",
+        "reminder",
+        "notifikasi",
+        "ambang",
+        "lonceng",
+        "mute",
+        "jumat"
+      ],
+      "steps": [
+        {
+          "node": "reminders.system",
+          "file": "src/main/reminders.ts",
+          "symbol": "startReminderScheduler",
+          "what": "Pemeriksaan pertama setelah jendela siap, lalu tiap 30 dtk; hitung ulang hanya setelah checkMinutes."
+        },
+        {
+          "node": "settings.engine",
+          "file": "src/shared/settings.ts",
+          "symbol": "settingsSchemas",
+          "what": "Ambang dari seksi reminders; hari kerja dari seksi work."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "listTasksForReminders",
+          "what": "Ambil task belum selesai + flag dibisukan, dan item inbox baru/ditunda."
+        },
+        {
+          "node": "reminders.system",
+          "file": "src/main/reminders.ts",
+          "symbol": "collectReminders",
+          "what": "Hitung: lewat tenggat > menunggu > pending; inbox lama digabung; pengingat Jumat timesheet."
+        },
+        {
+          "node": "reminders.system",
+          "file": "src/main/reminders.ts",
+          "symbol": "refreshReminders",
+          "what": "Kirim reminders:update ke renderer; yang baru dinotifikasi sekali per hari (Windows + toast)."
+        },
+        {
+          "node": "reminders.system",
+          "file": "src/renderer/src/components/ReminderBell.tsx",
+          "symbol": "ReminderBell",
+          "what": "Lonceng menampilkan daftar; Buka menuju task/inbox, Tunda menyembunyikan sampai besok, Bisukan memanggil mute."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "muteTaskReminder",
+          "what": "Tulis tasks.remind_muted; tombol yang sama ada di detail task."
+        }
+      ]
+    },
+    {
+      "id": "flow.timesheet",
+      "title": "Dari timer ke draft Sunfish",
+      "summary": "Entri waktu terkumpul di grid mingguan, diedit bila perlu, disalin sebagai draft, lalu ditandai tersalin agar pengingat Jumat berhenti.",
+      "tags": [
+        "timesheet",
+        "draft",
+        "sunfish",
+        "salin",
+        "sinkron",
+        "jam",
+        "idle"
+      ],
+      "steps": [
+        {
+          "node": "timer.feature",
+          "file": "src/renderer/src/lib/actions.ts",
+          "symbol": "openTask",
+          "what": "Membuka task memulai timer otomatis bila belum ada timer dan pengaturan mengizinkan."
+        },
+        {
+          "node": "idle.timer",
+          "file": "src/main/idle.ts",
+          "symbol": "startIdleWatcher",
+          "what": "Pengamat idle menghentikan timer dan memotong durasi setelah work.idleMinutes."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "stopTimerIdle",
+          "what": "Menulis ended_at, duration_seconds, source auto, dan log timer_idle."
+        },
+        {
+          "node": "timesheet.feature",
+          "file": "src/renderer/src/features/timesheet/TimesheetView.tsx",
+          "symbol": "TimesheetView",
+          "what": "Memuat entri rentang minggu + hitungan belum disalin, menampilkan grid dan total."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "updateTimeEntry",
+          "what": "Edit manual entri menghitung ulang durasi dan mencatat aktivitas."
+        },
+        {
+          "node": "timesheet.feature",
+          "file": "src/renderer/src/features/timesheet/TimesheetView.tsx",
+          "symbol": "TimesheetView",
+          "what": "Menyusun draft per hari/task, menyalin lewat clipboard main, dan membuka profil Sunfish."
+        },
+        {
+          "node": "repo",
+          "file": "src/main/db/repo.ts",
+          "symbol": "markEntriesSynced",
+          "what": "Menandai semua entri selesai pada minggu itu sebagai tersalin ke Sunfish."
+        },
+        {
+          "node": "reminders.system",
+          "file": "src/main/reminders.ts",
+          "symbol": "collectReminders",
+          "what": "Pengingat Jumat hanya muncul bila masih ada entri yang belum ditandai."
+        }
+      ]
+    },
+    {
+      "id": "flow.toolRun",
+      "title": "Dari sidebar ke proses tool dan dock",
+      "summary": "Tool dibuka dari sidebar/jendela, form otomatis mengumpulkan input, main process menjalankan proses anak, hasil dilampirkan ke task atau ditampilkan di dock.",
+      "tags": [
+        "tools",
+        "tool",
+        "runner",
+        "auto-form",
+        "dock",
+        "proses anak",
+        "impor"
+      ],
+      "steps": [
+        {
+          "node": "tools.system",
+          "file": "src/renderer/src/components/Sidebar.tsx",
+          "symbol": "Sidebar",
+          "what": "Tool aktif diklik (atau ditarik ke slot dock) → openTool / setLayout."
+        },
+        {
+          "node": "tools.system",
+          "file": "src/renderer/src/features/tools/ToolWindow.tsx",
+          "symbol": "ToolWindow",
+          "what": "Jendela tool menampilkan ToolPanel; tombol Panel kanan/bawah memindahkannya ke dock."
+        },
+        {
+          "node": "tools.system",
+          "file": "src/renderer/src/features/tools/ToolForm.tsx",
+          "symbol": "ToolForm",
+          "what": "Form dibuat dari manifest.inputs dan mengirim values ke tools.run (plus __taskId bila melampirkan)."
+        },
+        {
+          "node": "ipc",
+          "file": "src/main/ipc/index.ts",
+          "symbol": "registerIpc",
+          "what": "Handler tools:run memvalidasi id, memisahkan __taskId, dan memanggil runner."
+        },
+        {
+          "node": "tools.system",
+          "file": "src/main/tools/registry.ts",
+          "symbol": "getTool",
+          "what": "Registry memastikan tool ada, aktif, dan berasal dari folder tools app."
+        },
+        {
+          "node": "tools.system",
+          "file": "src/main/tools/runner.ts",
+          "symbol": "runTool",
+          "what": "Script/launcher/web dijalankan; input ditulis ke .alip-input.json, log ditangkap, timeout 10 menit, bisa dibatalkan."
+        },
+        {
+          "node": "tools.system",
+          "file": "src/main/tools/runner.ts",
+          "symbol": "outputTitle",
+          "what": "File hasil dikembalikan; IPC melampirkannya sebagai resource task bertipe tool bila diminta."
+        },
+        {
+          "node": "dock.feature",
+          "file": "src/renderer/src/components/Dock.tsx",
+          "symbol": "Dock",
+          "what": "Slot menyimpan tool + ukuran; mengosongkan slot membatalkan proses/melepas view tool."
+        }
+      ]
+    }
+  ]
+}

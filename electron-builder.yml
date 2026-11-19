@@ -1,0 +1,21 @@
+appId: id.transformnusa.tnworkspace
+productName: TN-Workspace
+copyright: Copyright (c) 2026 TransformNusa - Alip T. S.
+directories:
+  output: dist
+artifactName: TN-Workspace-${version}-setup.${ext}
+files:
+  - out/**
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+extraResources:
+  - from: runtime
+    to: runtime
+    filter:
+      - "**/*"
+      - "!README.md"
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
